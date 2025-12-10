@@ -1,0 +1,3 @@
+DROP DATABASE "BeepskyDb" WITH (FORCE);
+
+CREATE DATABASE "BeepskyDb";

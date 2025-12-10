@@ -1,0 +1,9 @@
+[Unit]
+Description=Officer Beepsky Service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/Beepsky
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,6 @@
+{
+  "BeepskyConfiguration": {
+    "DiscordBotToken": "",
+    "DatabaseConnectionString": ""
+  }
+}

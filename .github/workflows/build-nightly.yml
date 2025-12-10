@@ -1,0 +1,67 @@
+name: Publish Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  check_date:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    name: Check latest commit
+    outputs:
+      should_run: ${{ steps.should_run.outputs.should_run }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Print Commit Hash
+        run: |
+          git rev-parse HEAD
+          git rev-parse nightly
+
+      - id: should_run
+        name: Check if the latest nightly commit
+        run: if [[ $(git rev-parse HEAD) != $(git rev-parse nightly) ]]; then echo "should_run=true" >> $GITHUB_OUTPUT; fi
+
+  server:
+    name: Publish Nightly Server Builds
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: check_date
+    if: ${{ needs.check_date.outputs.should_run == 'true' && github.ref == 'refs/heads/develop' }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build Packages
+        run: |
+          cd Beepsky
+          dotnet deb --configuration Release --version-suffix nightly --output ../../publish/
+          dotnet rpm --configuration Release --version-suffix nightly --output ../../publish/
+          cd ../..
+
+      - name: Delete previous release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly --cleanup-tag --yes
+          sleep 10
+
+      - name: Upload Nightly Server Packages
+        uses: ncipollo/release-action@v1
+        with:
+          body: Nightly release of server artifacts
+          name: Nightly Server Release
+          tag: 'nightly'
+          makeLatest: true
+          prerelease: true
+          artifacts: './publish/Beepsky.*.linux-x64.deb,./publish/Beepsky.*.linux-x64.rpm'

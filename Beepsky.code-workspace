@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"entityframework.project": "Beepsky",
+		"entityframework.startupProject": "Beepsky",
+		"entityframework.commands": {
+			"addMigration": [
+				"dotnet ef",
+				"migrations add \"$migrationName\"",
+				"--project \"$project\"",
+				"--startup-project \"$startupProject\"",
+				"--context \"$dbContext\"",
+				"--output-dir \"Database/Migrations\""
+			]
+		}
+	}
+}
