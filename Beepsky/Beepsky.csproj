@@ -21,6 +21,7 @@
     <SourceControlInformationFeatureSupported>true</SourceControlInformationFeatureSupported>
     <SourceRevisionId>develop</SourceRevisionId>
     <NoDefaultLaunchSettingsFile>True</NoDefaultLaunchSettingsFile>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <InstallService Condition="$(Configuration) == 'Release'">true</InstallService>
   </PropertyGroup>
 
@@ -61,7 +62,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="/usr/lib/libopus.so" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="/usr/lib/libopus.so" CopyToOutputDirectory="PreserveNewest" Condition="$(ContinuousIntegrationBuild) != true" />
+
+    <!-- https://packages.ubuntu.com/questing/amd64/libopus-dev/filelist -->
+    <Content Include="/usr/lib/x86_64-linux-gnu/libopus.so" CopyToOutputDirectory="PreserveNewest" Condition="$(ContinuousIntegrationBuild) == true" />
   </ItemGroup>
 
   <ItemGroup Condition="$(Configuration) == 'Release'">
