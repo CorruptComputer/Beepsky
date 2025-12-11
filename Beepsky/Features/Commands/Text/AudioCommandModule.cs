@@ -15,14 +15,14 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     [Command("yt")]
-    public async Task<string> YouTubeAsync(string track)
+    public Task<string> YouTubeAsync(string track)
     {
         Log.Information("YouTubeAsync command started");
 
         if (Context.Guild is null)
         {
             Log.Warning("PlaySound attempted outside of guild");
-            return "This command can only be used in a guild!";
+            return Task.FromResult("This command can only be used in a guild.");
         }
 
         Log.Information("Guild resolved: {GuildId}", Context.Guild.Id);
@@ -31,7 +31,7 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
         if (!Context.Guild.VoiceStates.TryGetValue(Context.User.Id, out VoiceState? voiceState))
         {
             Log.Warning("User {UserId} not in voice channel", Context.User.Id);
-            return "You must be in a voice channel to use this command.";
+            return Task.FromResult("You must be in a voice channel to use this command.");
         }
 
         ulong voiceChannelId = voiceState.ChannelId.GetValueOrDefault();
@@ -39,9 +39,9 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
 
         bool added = audioQueue.AddTrackToDownloadQueue(voiceChannelId, Context.Guild.Id, track);
 
-        return added
+        return Task.FromResult(added
             ? "🫡"
-            : "Failed to add track to queue. Ensure the link is a valid YouTube URL link.";
+            : "Failed to add track to queue. Ensure the link is a valid YouTube URL link.");
     }
 
     // These add some nice flavor, but felt a little too much to me
