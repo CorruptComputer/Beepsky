@@ -19,3 +19,10 @@ runs:
       run: |
         dotnet --version
         dotnet --list-sdks
+
+    - name: Restore Tools
+      shell: bash
+      run: |
+        cd Beepsky
+        dotnet tool restore
+        cd ..
