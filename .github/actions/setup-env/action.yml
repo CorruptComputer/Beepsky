@@ -9,6 +9,10 @@ runs:
       with:
         dotnet-version: '9.0.x'
 
+    - name: Install libopus-dev
+      run: |
+        sudo apt-get install -y libopus-dev
+
     - name: Print .NET version and SDKs
       shell: bash
       run: |
