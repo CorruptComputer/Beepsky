@@ -16,7 +16,7 @@ public sealed class UpdateUserDb(BeepskyDbContext dbContext) : IRequestHandler<U
     {
 
         dbContext.DiscordUsers.Update(command.User);
-        dbContext.SaveChanges();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return CommandResponse.Pass();
     }

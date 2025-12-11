@@ -14,8 +14,8 @@ public sealed class CreateGuildUserStatistic(BeepskyDbContext dbContext) : IRequ
     /// <inheritdoc />
     public async Task<CommandResponse> Handle(Command command, CancellationToken cancellationToken)
     {
-        await dbContext.DiscordGuildUserStatistics.AddAsync(command.GuildUserStatistic, cancellationToken);
-        dbContext.SaveChanges();
+        dbContext.DiscordGuildUserStatistics.Add(command.GuildUserStatistic);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return CommandResponse.Pass();
     }

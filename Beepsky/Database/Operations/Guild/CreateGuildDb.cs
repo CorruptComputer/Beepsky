@@ -14,8 +14,8 @@ public sealed class CreateGuildDb(BeepskyDbContext dbContext) : IRequestHandler<
     /// <inheritdoc />
     public async Task<CommandResponse> Handle(Command command, CancellationToken cancellationToken)
     {
-        await dbContext.DiscordGuilds.AddAsync(command.Guild, cancellationToken);
-        dbContext.SaveChanges();
+        dbContext.DiscordGuilds.Add(command.Guild);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return CommandResponse.Pass();
     }

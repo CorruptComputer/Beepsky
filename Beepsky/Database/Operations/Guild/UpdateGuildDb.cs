@@ -15,7 +15,7 @@ public sealed class UpdateGuildDb(BeepskyDbContext dbContext) : IRequestHandler<
     public async Task<CommandResponse> Handle(Command command, CancellationToken cancellationToken)
     {
         dbContext.DiscordGuilds.Update(command.Guild);
-        dbContext.SaveChanges();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return CommandResponse.Pass();
     }

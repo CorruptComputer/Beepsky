@@ -30,16 +30,19 @@ public sealed class IsMessageWarhammerRelated : IRequestHandler<IsMessageWarhamm
     public record Command(string MessageContent) : IRequest<QueryResponse<bool>>;
 
     /// <inheritdoc />
-    public async Task<QueryResponse<bool>> Handle(Command request, CancellationToken cancellationToken)
+    public Task<QueryResponse<bool>> Handle(Command request, CancellationToken cancellationToken)
     {
+        QueryResponse<bool> response = false;
+
         foreach (string keyword in warhammerKeywords)
         {
             if (request.MessageContent.Contains(keyword, StringComparison.OrdinalIgnoreCase))
             {
-                return true;
+                response = true;
+                break;
             }
         }
 
-        return false;
+        return Task.FromResult(response);
     }
 }

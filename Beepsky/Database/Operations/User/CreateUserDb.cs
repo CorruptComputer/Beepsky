@@ -14,8 +14,8 @@ public sealed class CreateUserDb(BeepskyDbContext dbContext) : IRequestHandler<C
     /// <inheritdoc />
     public async Task<CommandResponse> Handle(Command command, CancellationToken cancellationToken)
     {
-        await dbContext.DiscordUsers.AddAsync(command.User, cancellationToken);
-        dbContext.SaveChanges();
+        dbContext.DiscordUsers.Add(command.User);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return CommandResponse.Pass();
     }
