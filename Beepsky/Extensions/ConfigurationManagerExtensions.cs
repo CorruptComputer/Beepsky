@@ -1,6 +1,5 @@
 using Beepsky.Exceptions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace Beepsky.Extensions;
 
@@ -17,24 +16,35 @@ public static class ConfigurationManagerExtensions
     public static BeepskyConfiguration AddBeepskyConfiguration(this ConfigurationManager configurationBuilder)
     {
         const string configFilePath = "/etc/beepsky/config.json";
-
         Console.WriteLine($"Loading configuration from: {configFilePath}");
 
-        Console.WriteLine("Configuration: \n" + File.ReadAllText(configFilePath));
+        // Optional true here so we can return a more specific error message below, it is still required.
+        configurationBuilder.AddJsonFile(configFilePath, optional: true, reloadOnChange: true);
 
-        configurationBuilder.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
-        configurationBuilder.AddEnvironmentVariables();
+        BeepskyConfiguration? config = configurationBuilder.GetSection("BeepskyConfiguration").Get<BeepskyConfiguration>();
 
-        BeepskyConfiguration? backendConfig = configurationBuilder.GetSection("BeepskyConfiguration").Get<BeepskyConfiguration>();
-
-        if (backendConfig is null)
+        if (config is null)
         {
-            Console.WriteLine($"BeepskyConfiguration is missing from {configFilePath}");
-            throw new BeepskyException($"BeepskyConfiguration is missing from {configFilePath}");
+            throw new BeepskyException($"'BeepskyConfiguration' is missing from {configFilePath}");
+        }
+
+        if (string.IsNullOrWhiteSpace(config.DiscordBotToken))
+        {
+            throw new BeepskyException("'BeepskyConfiguration:DiscordBotToken' is not set in configuration.");
+        }
+
+        if (string.IsNullOrWhiteSpace(config.DatabaseConnectionString))
+        {
+            throw new BeepskyException("'BeepskyConfiguration:DatabaseConnectionString' is not set in configuration.");
+        }
+
+        if (string.IsNullOrWhiteSpace(config.DownloadCache))
+        {
+            throw new BeepskyException("'BeepskyConfiguration:DownloadCache' is not set in configuration.");
         }
 
         Console.WriteLine("Configuration loaded successfully");
 
-        return backendConfig;
+        return config;
     }
 }

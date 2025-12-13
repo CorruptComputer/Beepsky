@@ -17,7 +17,6 @@ public sealed record QueryResponse<TResult> : ResponseBase
     /// </summary>
     public TResult? Result { get; init; }
 
-// I agree it is kinda goofy, but idk a better way to do this. Problem for future me
 #pragma warning disable CA1000 // Do not declare static members on generic types
     /// <summary>
     ///   Creates a failure response, optionally with the reason why it failed.

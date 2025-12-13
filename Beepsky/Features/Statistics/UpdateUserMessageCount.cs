@@ -4,7 +4,7 @@ using Beepsky.Database.Operations.GuildUserStatistic;
 using Beepsky.Database.Operations.User;
 using NetCord.Gateway;
 
-namespace Beepsky.Features.Commands.Statistics;
+namespace Beepsky.Features.Statistics;
 
 // TODO: This entire class needs to be removed, refactor to have the DB operations take the User, Guild, etc. directly
 

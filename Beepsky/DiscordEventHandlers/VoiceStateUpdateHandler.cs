@@ -1,6 +1,5 @@
 using Beepsky.Services;
 using NetCord.Gateway;
-using NetCord.Gateway.Voice;
 using NetCord.Hosting.Gateway;
 using NetCord.Rest;
 

@@ -7,6 +7,7 @@ namespace Beepsky.Services;
 
 /// <summary>
 ///   Service that handles voice connections for guilds
+///   This should be a singleton that can be used by any thread
 /// </summary>
 /// <param name="gatewayClient"></param>
 /// <param name="restClient"></param>

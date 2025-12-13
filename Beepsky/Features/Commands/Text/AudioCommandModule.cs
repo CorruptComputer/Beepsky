@@ -1,7 +1,8 @@
+using System.Text;
 using Beepsky.Services;
 using NetCord.Gateway;
+using NetCord.Rest;
 using NetCord.Services.Commands;
-using Serilog;
 
 namespace Beepsky.Features.Commands.Text;
 
@@ -15,33 +16,27 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     [Command("q")]
-    public Task<string> QueueTrack(string track)
+    public string QueueTrack(string track)
     {
-        Log.Information("QueueTrack command started");
 
         if (Context.Guild is null)
         {
-            Log.Warning("QueueTrack attempted outside of guild");
-            return Task.FromResult("This command can only be used in a guild.");
+            return "This command can only be used in a guild.";
         }
-
-        Log.Information("Guild resolved: {GuildId}", Context.Guild.Id);
 
         // Get the user voice state
         if (!Context.Guild.VoiceStates.TryGetValue(Context.User.Id, out VoiceState? voiceState))
         {
-            Log.Warning("User {UserId} not in voice channel", Context.User.Id);
-            return Task.FromResult("You must be in a voice channel to use this command.");
+            return "You must be in a voice channel to use this command.";
         }
 
         ulong voiceChannelId = voiceState.ChannelId.GetValueOrDefault();
-        Log.Information("User {UserId} in voice channel {ChannelId}", Context.User.Id, voiceChannelId);
 
         bool added = audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
 
-        return Task.FromResult(added
+        return added
             ? "🫡"
-            : "Failed to add track to queue. Ensure the link is valid.");
+            : "Failed to add track to queue. Ensure the link is valid.";
     }
 
     /// <summary>
@@ -51,25 +46,18 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
     [Command("skip")]
     public string SkipTrack()
     {
-        Log.Information("SkipTrack command started");
-
         if (Context.Guild is null)
         {
-            Log.Warning("SkipTrack attempted outside of guild");
             return "This command can only be used in a guild.";
         }
-
-        Log.Information("Guild resolved: {GuildId}", Context.Guild.Id);
 
         // Get the user voice state
         if (!Context.Guild.VoiceStates.TryGetValue(Context.User.Id, out VoiceState? voiceState))
         {
-            Log.Warning("User {UserId} not in voice channel", Context.User.Id);
             return "You must be in a voice channel to use this command.";
         }
 
         audioQueue.AddSkipForGuild(Context.Guild.Id);
-        Log.Information("Skip requested for guild {GuildId} by user {UserId}", Context.Guild.Id, Context.User.Id);
         return "🫡";
     }
 
@@ -80,27 +68,70 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
     [Command("stop")]
     public string StopAllPlayback()
     {
-        Log.Information("StopTrack command started");
 
         if (Context.Guild is null)
         {
-            Log.Warning("StopTrack attempted outside of guild");
             return "This command can only be used in a guild.";
         }
-
-        Log.Information("Guild resolved: {GuildId}", Context.Guild.Id);
 
         // Get the user voice state
         if (!Context.Guild.VoiceStates.TryGetValue(Context.User.Id, out VoiceState? voiceState))
         {
-            Log.Warning("User {UserId} not in voice channel", Context.User.Id);
             return "You must be in a voice channel to use this command.";
         }
 
         audioQueue.AddStopForGuild(Context.Guild.Id);
-        Log.Information("Stop requested for guild {GuildId} by user {UserId}", Context.Guild.Id, Context.User.Id);
 
         return "🫡";
+    }
+
+    /// <summary>
+    ///   Lists the current queue for the guild
+    /// </summary>
+    /// <returns></returns>
+    [Command("lq")]
+    public async Task ListQueue()
+    {
+        if (Context.Guild is null)
+        {
+            await Context.Message.ReplyAsync("This command can only be used in a guild.");
+            return;
+        }
+
+        QueuedAudioTrack? currentlyPlaying = audioQueue.GetCurrentlyPlayingTrackForGuild(Context.Guild.Id);
+        IOrderedEnumerable<QueuedAudioTrack> queue = audioQueue.GetQueueForGuild(Context.Guild.Id).OrderBy(track => track.QueuedAt);
+
+        if (currentlyPlaying is null && !queue.Any())
+        {
+            await Context.Message.ReplyAsync("The queue is currently empty.");
+            return;
+        }
+
+        StringBuilder response = new($"Currently Playing: {(currentlyPlaying is not null ? currentlyPlaying.TrackUri.ToString() : "Nothing")}");
+        if (queue.Any())
+        {
+            response.Append("\n\nUp Next:\n");
+            int index = 1;
+            foreach (QueuedAudioTrack track in queue)
+            {
+                //response.Append($"{index}. {track.TrackUri} ({Enum.GetName(track.CurrentState)})\n");
+
+                // Need to do this shit the painful way since the above is an error with <AnalysisMode>Recommended</AnalysisMode>
+                response.Append(index);
+                response.Append(". ");
+                response.Append(track.TrackUri);
+                response.Append(" (");
+                response.Append(Enum.GetName(track.CurrentState));
+                response.Append(")\n");
+                index++;
+            }
+        }
+
+        RestMessage reply = await Context.Message.ReplyAsync(new ReplyMessageProperties()
+        {
+            Content = response.ToString(),
+            Flags = MessageFlags.SuppressEmbeds
+        });
     }
 
     // These add some nice flavor, but felt a little too much to me

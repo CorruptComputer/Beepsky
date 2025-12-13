@@ -109,6 +109,16 @@ public class AudioQueueService
     }
 
     /// <summary>
+    ///   Gets the full queue for a guild
+    /// </summary>
+    /// <param name="guildId"></param>
+    /// <returns></returns>
+    public IEnumerable<QueuedAudioTrack> GetQueueForGuild(ulong guildId)
+    {
+        return TrackQueue.Where(track => track.Value.GuildId == guildId && track.Value.CurrentState != QueuedAudioTrack.State.Playing).Select(tp => tp.Value);
+    }
+
+    /// <summary>
     ///   Gets a list of guilds that have skip requests
     /// </summary>
     /// <returns></returns>

@@ -15,10 +15,10 @@ public sealed class GeneralCommandModule : CommandModule<CommandContext>
     [Command("8ball")]
     public static string EightBall([CommandParameter(Remainder = true)] string? question = null)
     {
-        int certainty = _random.Next(EightBallResponses.Count * 100) % EightBallResponses.Count;
+        int certainty = _random.Next(EightBallResponses.Count);
 
         List<string> possibleResponses = EightBallResponses[certainty];
-        int responseIndex = _random.Next(possibleResponses.Count * 100) % possibleResponses.Count;
+        int responseIndex = _random.Next(possibleResponses.Count);
         string response = possibleResponses[responseIndex];
 
         string certaintyEmoji = certainty switch
@@ -49,11 +49,16 @@ public sealed class GeneralCommandModule : CommandModule<CommandContext>
     public static string Help()
     {
         string helpMessage =
-@$"**Beepsky**
+@$"**Audio Commands** (server-only)
+- {BeepskyConfiguration.Prefix}q [link] - Queues a track to play from YouTube
+- {BeepskyConfiguration.Prefix}skip - Skip the currently playing track
+- {BeepskyConfiguration.Prefix}stop - Stop playback and clear the queue
+- {BeepskyConfiguration.Prefix}lq - Lists the current queue of tracks
+
+**General Commands**
 - {BeepskyConfiguration.Prefix}8ball [question (optional)] - Ask the magic 8-ball a question
 - {BeepskyConfiguration.Prefix}help - Show this help message
 - {BeepskyConfiguration.Prefix}ping - Pong!
-- {BeepskyConfiguration.Prefix}yt [link] - Play a YouTube link in your current voice channel (guild only)
 ";
 
         return helpMessage;

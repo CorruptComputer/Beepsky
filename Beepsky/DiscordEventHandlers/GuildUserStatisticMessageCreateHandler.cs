@@ -1,5 +1,4 @@
-using Beepsky.Features.Chatty;
-using Beepsky.Features.Commands.Statistics;
+using Beepsky.Features.Statistics;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 

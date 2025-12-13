@@ -29,8 +29,11 @@ public static class TaskExtensions
         }
         else
         {
-            // Cancel the task if a linked CTS is provided
-            tasksLinkedCts?.Cancel();
+            if (tasksLinkedCts is not null)
+            {
+                // Cancel the task if a linked CTS is provided
+                await tasksLinkedCts.CancelAsync();
+            }
 
             if (onTimeout is not null)
             {
