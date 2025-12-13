@@ -21,5 +21,5 @@ public sealed record BeepskyConfiguration
     /// <summary>
     ///   The download cache directory
     /// </summary>
-    public required string DownloadCacheDirectory { get; init; }
+    public required string DownloadCache { get; init; }
 }

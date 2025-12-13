@@ -68,7 +68,7 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
 
         try
         {
-            string outputDir = Path.Join(beepskyConfiguration.DownloadCacheDirectory, "yt");
+            string outputDir = Path.Join(beepskyConfiguration.DownloadCache, "yt");
 
             if (!Directory.Exists(outputDir))
             {

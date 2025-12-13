@@ -25,7 +25,7 @@ public class BeepskyModule(BeepskyConfiguration config) : Module
             throw new BeepskyException("Database connection string is not set in configuration.");
         }
 
-        if (string.IsNullOrWhiteSpace(config.DownloadCacheDirectory))
+        if (string.IsNullOrWhiteSpace(config.DownloadCache))
         {
             throw new BeepskyException("Download cache directory is not set in configuration.");
         }

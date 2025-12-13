@@ -21,6 +21,8 @@ public static class ConfigurationManagerExtensions
 
         Console.WriteLine($"Loading configuration from: {configFilePath}");
 
+        Console.WriteLine("Configuration: \n" + File.ReadAllText(configFilePath));
+
         configurationBuilder.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
         configurationBuilder.AddEnvironmentVariables();
 
