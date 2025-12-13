@@ -13,11 +13,10 @@ public static class ConfigurationManagerExtensions
     ///   Adds the BeepskyConfiguration to the configuration builder
     /// </summary>
     /// <param name="configurationBuilder"></param>
-    /// <param name="environment"></param>
     /// <returns></returns>
-    public static BeepskyConfiguration AddBeepskyConfiguration(this ConfigurationManager configurationBuilder, IHostEnvironment environment)
+    public static BeepskyConfiguration AddBeepskyConfiguration(this ConfigurationManager configurationBuilder)
     {
-        string configFilePath = "/etc/beepsky/config.json";
+        const string configFilePath = "/etc/beepsky/config.json";
 
         Console.WriteLine($"Loading configuration from: {configFilePath}");
 
