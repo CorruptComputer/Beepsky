@@ -73,7 +73,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="$(Configuration) == 'Release'">
-    <Content Include="config.json" CopyToPublishDirectory="PreserveNewest" LinuxFileMode="0640" LinuxPath="/etc/beepsky/config.json" />
+    <!-- Causes the config to get nuked every time the package is installed -->
+    <!--Content Include="config.json" CopyToPublishDirectory="PreserveNewest" LinuxFileMode="0640" LinuxPath="/etc/beepsky/config.json" /-->
     <Content Include="beepsky.service" CopyToPublishDirectory="PreserveNewest" LinuxFileMode="0755" LinuxPath="/etc/systemd/system/beepsky.service" />
   </ItemGroup>
 </Project>
