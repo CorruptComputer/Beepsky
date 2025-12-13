@@ -1,6 +1,7 @@
 {
   "BeepskyConfiguration": {
     "DiscordBotToken": "",
-    "DatabaseConnectionString": ""
+    "DatabaseConnectionString": "",
+    "DownloadCache": "/tmp/beepsky"
   }
 }

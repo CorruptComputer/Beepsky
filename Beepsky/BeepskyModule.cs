@@ -22,6 +22,10 @@ public class BeepskyModule(BeepskyConfiguration config) : Module
                .AsSelf()
                .SingleInstance();
 
+        builder.RegisterType<VoiceConnectionService>()
+               .AsSelf()
+               .SingleInstance();
+
         QuestyConfigurationBuilder questyConfig = QuestyConfigurationBuilder.Create(ThisAssembly)
             .WithAllOpenGenericHandlerTypesRegistered()
             .WithCustomPipelineBehaviors([

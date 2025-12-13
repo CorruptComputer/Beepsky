@@ -65,9 +65,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- I use Arch BTW, so this is the file path for me when doing local dev, if its different for you cool you can change it -->
     <Content Include="/usr/lib/libopus.so" CopyToOutputDirectory="PreserveNewest" Condition="$(ContinuousIntegrationBuild) != true" />
 
-    <!-- https://packages.ubuntu.com/questing/amd64/libopus-dev/filelist -->
+    <!-- GitHub CI is on Ubuntu: https://packages.ubuntu.com/questing/amd64/libopus-dev/filelist -->
     <Content Include="/usr/lib/x86_64-linux-gnu/libopus.so" CopyToOutputDirectory="PreserveNewest" Condition="$(ContinuousIntegrationBuild) == true" />
   </ItemGroup>
 

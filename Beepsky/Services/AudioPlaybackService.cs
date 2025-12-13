@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Beepsky.Exceptions;
+using Beepsky.Extensions;
 using Microsoft.Extensions.Hosting;
-using NetCord.Gateway;
-using NetCord.Gateway.Voice;
 using NetCord.Logging;
 using Serilog;
 
@@ -10,99 +10,126 @@ namespace Beepsky.Services;
 
 /// <summary>
 ///   Service that handles audio playback in voice channels
+///   This is a background service to allow this to happen in a different thread than the discord events
 /// </summary>
 /// <param name="audioQueue"></param>
-/// <param name="client"></param>
-public class AudioPlaybackService(AudioQueueService audioQueue, GatewayClient client) : BackgroundService
+/// <param name="voiceConnectionService"></param>
+public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionService voiceConnectionService) : BackgroundService
 {
-                                      // <GuildId, VoiceClient>
-    private readonly ConcurrentDictionary<ulong, VoiceConnection> VoiceConnections = [];
-
-                                      // <GuildId, Task>
+    // <GuildId, Task>
     private readonly ConcurrentDictionary<ulong, Task> PlaybackTasks = [];
 
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-
         while (!stoppingToken.IsCancellationRequested)
         {
-            ICollection<ulong> guildsWithQueues = audioQueue.GetGuildsWithPlaybackQueues();
+            // Need to stop whats currently playing
+            IEnumerable<ulong> guildsToSkip = audioQueue.GetGuildsWithSkips();
+            foreach (ulong guildId in guildsToSkip)
+            {
+                VoiceConnection? vc = voiceConnectionService.GetVoiceConnectionForGuild(guildId);
+                if (vc is not null)
+                {
+                    Log.Information("Skip requested for guild {GuildId}, cancelling playback", guildId);
+                    vc.CurrentlyPlaying?.CancellationTokenSource.Cancel();
+                    audioQueue.ClearSkipForGuild(guildId);
+                }
+            }
 
+            // Play next track
+            IEnumerable<ulong> guildsWithQueues = audioQueue.GetGuildsWithPlaybackQueues();
             foreach (ulong guildId in guildsWithQueues)
             {
+                QueuedAudioTrack? nextTrack = audioQueue.GetNextPlayback(guildId);
+                while (nextTrack is not null && nextTrack.CancellationTokenSource.IsCancellationRequested)
+                {
+                    Log.Information("Skipping cancelled track");
+                    audioQueue.RemoveTrack(nextTrack);
+                    nextTrack = audioQueue.GetNextPlayback(guildId);
+                }
+
                 if (PlaybackTasks.ContainsKey(guildId))
                 {
-                    if (PlaybackTasks[guildId].IsCompleted)
+                    // Done playing
+                    if (PlaybackTasks[guildId].IsCompleted || PlaybackTasks[guildId].IsCanceled)
                     {
                         PlaybackTasks.Remove(guildId, out _);
+                        QueuedAudioTrack? completedTrack = audioQueue.GetCurrentlyPlayingTrackForGuild(guildId);
+                        if (completedTrack is not null)
+                        {
+                            Log.Information("Completed playback for track {Track} in guild {GuildId}", completedTrack.DownloadedFilePath, guildId);
+                            audioQueue.RemoveTrack(completedTrack);
+                        }
+
+                        // Nothing next
+                        if (nextTrack is null)
+                        {
+                            Log.Information("No tracks left to play for guild {GuildId}", guildId);
+                            await voiceConnectionService.DisconnectFromGuildAsync(guildId, stoppingToken);
+                            continue;
+                        }
                     }
+                    // Still playing
                     else
                     {
                         continue;
                     }
                 }
 
-                QueuedAudioTrack? nextTrack = audioQueue.PopNextPlayback(guildId);
-
+                // Something next
                 if (nextTrack is not null && nextTrack.DownloadedFilePath is not null)
                 {
                     Log.Information("Popped next track for guild {GuildId}: {Track}", guildId, nextTrack.DownloadedFilePath);
 
-                    PlaybackTasks[guildId] = PlayAudioFile(nextTrack.VoiceChannelId, guildId, nextTrack.DownloadedFilePath);
+                    PlaybackTasks[guildId] = Task.Run(async () =>
+                    {
+                        nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
+                        await PlayAudioFile(nextTrack);
+                    }, nextTrack.CancellationTokenSource.Token);
                 }
             }
 
-            await Task.Delay(1000, stoppingToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
         }
     }
 
     /// <summary>
     ///   Plays an audio file in a voice channel
     /// </summary>
-    /// <param name="voiceChannelId"></param>
-    /// <param name="guildId"></param>
-    /// <param name="filePath"></param>
+    /// <param name="track"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private async Task PlayAudioFile(ulong voiceChannelId, ulong guildId, string filePath)
+    private async Task PlayAudioFile(QueuedAudioTrack track)
     {
+        if (track.DownloadedFilePath is null)
+        {
+            Log.Error("Attempted to play track with null file path");
+            return;
+        }
+
+        if (track.CancellationTokenSource.IsCancellationRequested)
+        {
+            Log.Information("Playback cancelled before starting for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
+            return;
+        }
+
         try
         {
-            if (!VoiceConnections.TryGetValue(guildId, out VoiceConnection? voiceConnection))
+            VoiceConnection voiceConnection = await voiceConnectionService.GetOrCreateVoiceConnectionForTrackAsync(track);
+
+            if (voiceConnection.OpusEncodeStream is null)
             {
-                VoiceClient voiceClient = await client.JoinVoiceChannelAsync(
-                    guildId,
-                    voiceChannelId,
-                    new VoiceClientConfiguration
-                    {
-                        Logger = new BeepskyVoiceLogger(),
-                    });
-
-                await voiceClient.StartAsync();
-                await voiceClient.EnterSpeakingStateAsync(new SpeakingProperties(SpeakingFlags.Microphone));
-                Stream outStream = voiceClient.CreateOutputStream();
-                OpusEncodeStream stream = new(outStream, PcmFormat.Short, VoiceChannels.Stereo, OpusApplication.Audio);
-                voiceConnection = new VoiceConnection
-                {
-                    VoiceClient = voiceClient,
-                    OutStream = outStream,
-                    OpusEncodeStream = stream
-                };
-
-                VoiceConnections[guildId] = voiceConnection;
+                throw new BeepskyException("Invalid state, OpusEncodeStream is null");
             }
 
-            // TODO: Deal with changing voice channels at some point
-
-            if (!File.Exists(filePath))
+            if (!File.Exists(track.DownloadedFilePath))
             {
-                Log.Error("Audio file not found: {Link}", filePath);
+                Log.Error("Audio file not found: {Link}", track.DownloadedFilePath);
             }
 
             List<string> arguments = [
-                "-i", filePath,
+                "-i", track.DownloadedFilePath,
                 "-loglevel", "-8",
                 "-ac", "2",
                 "-f", "s16le",
@@ -121,19 +148,47 @@ public class AudioPlaybackService(AudioQueueService audioQueue, GatewayClient cl
                 startInfo.ArgumentList.Add(arg);
             }
 
-            Process ffmpeg = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start FFmpeg process");
-            await ffmpeg.StandardOutput.BaseStream.CopyToAsync(voiceConnection.OpusEncodeStream);
-            string ffmpegErrors = await ffmpeg.StandardError.ReadToEndAsync();
-            await voiceConnection.OpusEncodeStream.FlushAsync();
+            using Process ffmpeg = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start FFmpeg process");
+            try
+            {
+                await ffmpeg.StandardOutput.BaseStream.CopyToAsync(voiceConnection.OpusEncodeStream, track.CancellationTokenSource.Token).AwaitWithTimeout(
+                TimeSpan.FromMinutes(60),
+                onSuccess: async () =>
+                {
+                    Log.Information("Finished playing track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
+                    string ffmpegErrors = await ffmpeg.StandardError.ReadToEndAsync();
+                    await voiceConnection.OpusEncodeStream.FlushAsync();
+                },
+                onTimeout: () =>
+                {
+                    Log.Warning("FFmpeg process timed out for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
+                    ffmpeg.Kill();
+                },
+                onComplete: () =>
+                {
+                    ffmpeg.Dispose();
+                    voiceConnection.CurrentlyPlaying = null;
+                },
+                tasksLinkedCts: track.CancellationTokenSource);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error during playback of track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
+                ffmpeg.Kill();
+                ffmpeg.Dispose();
+            }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error playing track {Track} in guild {GuildId}", filePath, guildId);
+            Log.Error(ex, "Error playing track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
+        }
+        finally
+        {
+            track.CancellationTokenSource.Dispose();
         }
     }
 }
 
-// Temporarily here until I figure out if this works
 internal sealed class BeepskyVoiceLogger : IVoiceLogger
 {
     public bool IsEnabled(LogLevel logLevel)

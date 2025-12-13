@@ -17,23 +17,23 @@ public sealed class NormalChat(ISender sender) : IRequestHandler<NormalChat.Comm
     {
         if (request.Message.Author.Id == (ulong)WellKnownUsers.Skeleton)
         {
-            // First funny, tell skeleton to go back to the warhammer channel if he talks about it outside there, 1 in 20 chance
-            // Roll a d20
-            int roll = rdm.Next(20) + 1;
+            // Tell skeleton to go back to the warhammer channel if he talks about it outside there, 1 in 20 chance
+            bool isWarhammerRelated = await sender.Send(new IsMessageWarhammerRelated.Command(request.Message.Content), cancellationToken);
 
-            // Oh yeah, its show time
-            if (roll == 20)
+            if (isWarhammerRelated
+                && request.Message.ChannelId != (ulong)WellKnownChannels.Warhammer)
             {
-                bool isWarhammerRelated = await sender.Send(new IsMessageWarhammerRelated.Command(request.Message.Content), cancellationToken);
-
-                if (isWarhammerRelated)
+                // Roll a d20
+                int roll = rdm.Next(20) + 1;
+                // Oh yeah, its show time
+                if (roll == 20)
                 {
                     await sender.Send(new TellSkeletonHeSmells.Command(request.Message), cancellationToken);
                     return;
                 }
             }
 
-            // Possible second funny, 1 in 1,000,000 to respond to any message of his with something
+            // 1 in 1,000,000 to respond to any message of his with something?
         }
         else if (request.Message.Author.Id == (ulong)WellKnownUsers.Monke)
         {

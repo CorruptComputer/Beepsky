@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Extensions.Hosting;
 using NetCord.Services.Commands;
 
@@ -8,20 +7,21 @@ namespace Beepsky.Features.Commands.Text;
 public class SystemCommandModule(IHostApplicationLifetime hostApplicationLifetime) : CommandModule<CommandContext>
 {
     /// <summary>
-    ///   Stops the bot
+    ///   Shuts down the bot
     /// </summary>
     /// <returns></returns>
-    [Command("stop")]
+    [Command("shutdown")]
     public string Stop()
     {
-        // Ideally all the commands in this should have these same restrictions, need to look into these further:
+        // Ideally all the commands in this module should have these same restrictions, need to look into these further:
         // https://netcord.dev/guides/services/preconditions.html
         if (IsChannelDm() && IsUserAdmin())
         {
             hostApplicationLifetime.StopApplication();
+            return "Goodbye!";
         }
 
-        return string.Empty;
+        return "Command not found.";
     }
 
     private bool IsUserAdmin()

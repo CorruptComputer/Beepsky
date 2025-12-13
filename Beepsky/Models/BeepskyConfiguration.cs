@@ -17,4 +17,9 @@ public sealed record BeepskyConfiguration
     ///   The database connection string
     /// </summary>
     public required string DatabaseConnectionString { get; init; }
+
+    /// <summary>
+    ///   The download cache directory
+    /// </summary>
+    public required string DownloadCacheDirectory { get; init; }
 }

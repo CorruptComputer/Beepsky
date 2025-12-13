@@ -1,5 +1,4 @@
 using Beepsky.Features.Chatty;
-using Beepsky.Features.Commands;
 using Beepsky.Features.Commands.Statistics;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
@@ -11,7 +10,7 @@ namespace Beepsky.DiscordEventHandlers;
 /// </summary>
 /// <param name="sender"></param>
 /// <param name="client"></param>
-public sealed class MessageCreateHandler(ISender sender, GatewayClient client) : IMessageCreateGatewayHandler
+public sealed class BeepskyReplyMessageCreateHandler(ISender sender, GatewayClient client) : IMessageCreateGatewayHandler
 {
     /// <inheritdoc />
     public async ValueTask HandleAsync(Message arg)
@@ -21,13 +20,9 @@ public sealed class MessageCreateHandler(ISender sender, GatewayClient client) :
             return;
         }
 
-        bool isCommand = arg.Content.StartsWith(BeepskyConfiguration.Prefix);
-        bool isBeepskyChat = false;
-
         // Direct mentions
         if (arg.MentionedUsers.Any(u => u.Id == client.Token.Id))
         {
-            isBeepskyChat = true;
             await sender.Send(new BeepskyChat.Command(arg));
         }
         // Responses to normal messages
@@ -40,11 +35,6 @@ public sealed class MessageCreateHandler(ISender sender, GatewayClient client) :
             {
                 await arg.AddReactionAsync(new("👋"));
             }
-        }
-
-        if (arg.Guild is not null)
-        {
-            await sender.Send(new UpdateUserMessageCount.Command(arg.Author, arg.Guild, isCommand, isBeepskyChat));
         }
 
         return;

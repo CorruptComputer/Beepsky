@@ -1,5 +1,3 @@
-using NetCord.Gateway.Voice;
-
 namespace Beepsky.Models;
 
 /// <summary>
@@ -18,6 +16,16 @@ public sealed record QueuedAudioTrack
     public required ulong VoiceChannelId { get; init; }
 
     /// <summary>
+    ///   The time this track was queued
+    /// </summary>
+    public DateTimeOffset QueuedAt { get; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    ///   The current state of this queued audio track
+    /// </summary>
+    public required State CurrentState { get; set; }
+
+    /// <summary>
     ///   The type of download for this track
     /// </summary>
     public required DownloadType Type { get; init; }
@@ -31,6 +39,37 @@ public sealed record QueuedAudioTrack
     ///   If downloaded, the file path of the downloaded audio file
     /// </summary>
     public string? DownloadedFilePath { get; set; }
+
+    /// <summary>
+    ///   The cancellation token source for this track
+    /// </summary>
+    public required CancellationTokenSource CancellationTokenSource { get; init; }
+
+    /// <summary>
+    ///   The current state of this queued audio track
+    /// </summary>
+    public enum State
+    {
+        /// <summary>
+        ///   Freshly queued for download
+        /// </summary>
+        QueuedForDownload,
+
+        /// <summary>
+        ///   Is currently being downloaded
+        /// </summary>
+        Downloading,
+
+        /// <summary>
+        ///   Waiting for playback
+        /// </summary>
+        QueuedForPlayback,
+
+        /// <summary>
+        ///   Is currently being played
+        /// </summary>
+        Playing
+    }
 
     /// <summary>
     ///   The type of download for a queued audio track

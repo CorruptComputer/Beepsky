@@ -43,10 +43,13 @@ public static class Program
             options.Token = config.DiscordBotToken;
             options.Intents = NetCord.Gateway.GatewayIntents.All;
         })
-        .AddGatewayHandler<MessageCreateHandler>()
+        .AddGatewayHandler<BeepskyReplyMessageCreateHandler>()
+        .AddGatewayHandler<GuildUserStatisticMessageCreateHandler>()
+        .AddGatewayHandler<VoiceStateUpdateHandler>()
         .AddCommands(options =>
         {
             options.Prefix = new(BeepskyConfiguration.Prefix, 1);
+            options.IgnoreCase = true;
         });
 
         builder.Services.AddDbContext<BeepskyDbContext>(ServiceLifetime.Transient);

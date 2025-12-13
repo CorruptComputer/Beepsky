@@ -14,14 +14,14 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
     /// <param name="track"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    [Command("yt")]
-    public Task<string> YouTubeAsync(string track)
+    [Command("q")]
+    public Task<string> QueueTrack(string track)
     {
-        Log.Information("YouTubeAsync command started");
+        Log.Information("QueueTrack command started");
 
         if (Context.Guild is null)
         {
-            Log.Warning("PlaySound attempted outside of guild");
+            Log.Warning("QueueTrack attempted outside of guild");
             return Task.FromResult("This command can only be used in a guild.");
         }
 
@@ -37,11 +37,70 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
         ulong voiceChannelId = voiceState.ChannelId.GetValueOrDefault();
         Log.Information("User {UserId} in voice channel {ChannelId}", Context.User.Id, voiceChannelId);
 
-        bool added = audioQueue.AddTrackToDownloadQueue(voiceChannelId, Context.Guild.Id, track);
+        bool added = audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
 
         return Task.FromResult(added
             ? "🫡"
-            : "Failed to add track to queue. Ensure the link is a valid YouTube URL link.");
+            : "Failed to add track to queue. Ensure the link is valid.");
+    }
+
+    /// <summary>
+    ///   Skip the current track
+    /// </summary>
+    /// <returns></returns>
+    [Command("skip")]
+    public string SkipTrack()
+    {
+        Log.Information("SkipTrack command started");
+
+        if (Context.Guild is null)
+        {
+            Log.Warning("SkipTrack attempted outside of guild");
+            return "This command can only be used in a guild.";
+        }
+
+        Log.Information("Guild resolved: {GuildId}", Context.Guild.Id);
+
+        // Get the user voice state
+        if (!Context.Guild.VoiceStates.TryGetValue(Context.User.Id, out VoiceState? voiceState))
+        {
+            Log.Warning("User {UserId} not in voice channel", Context.User.Id);
+            return "You must be in a voice channel to use this command.";
+        }
+
+        audioQueue.AddSkipForGuild(Context.Guild.Id);
+        Log.Information("Skip requested for guild {GuildId} by user {UserId}", Context.Guild.Id, Context.User.Id);
+        return "🫡";
+    }
+
+    /// <summary>
+    ///   Stop all playback in the guild
+    /// </summary>
+    /// <returns></returns>
+    [Command("stop")]
+    public string StopAllPlayback()
+    {
+        Log.Information("StopTrack command started");
+
+        if (Context.Guild is null)
+        {
+            Log.Warning("StopTrack attempted outside of guild");
+            return "This command can only be used in a guild.";
+        }
+
+        Log.Information("Guild resolved: {GuildId}", Context.Guild.Id);
+
+        // Get the user voice state
+        if (!Context.Guild.VoiceStates.TryGetValue(Context.User.Id, out VoiceState? voiceState))
+        {
+            Log.Warning("User {UserId} not in voice channel", Context.User.Id);
+            return "You must be in a voice channel to use this command.";
+        }
+
+        audioQueue.AddStopForGuild(Context.Guild.Id);
+        Log.Information("Stop requested for guild {GuildId} by user {UserId}", Context.Guild.Id, Context.User.Id);
+
+        return "🫡";
     }
 
     // These add some nice flavor, but felt a little too much to me

@@ -1,5 +1,4 @@
 using Beepsky.Exceptions;
-using NetCord.Gateway;
 using NetCord.Services.Commands;
 
 namespace Beepsky.Features.Commands.Text;
