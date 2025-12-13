@@ -1,4 +1,5 @@
 using Autofac;
+using Beepsky.Exceptions;
 using Beepsky.PipelineBehaviors;
 using Beepsky.Services;
 using Questy.Autofac;
@@ -14,6 +15,21 @@ public class BeepskyModule(BeepskyConfiguration config) : Module
     /// <inheritdoc />
     protected override void Load(ContainerBuilder builder)
     {
+        if (string.IsNullOrWhiteSpace(config.DiscordBotToken))
+        {
+            throw new BeepskyException("Discord bot token is not set in configuration.");
+        }
+
+        if (string.IsNullOrWhiteSpace(config.DatabaseConnectionString))
+        {
+            throw new BeepskyException("Database connection string is not set in configuration.");
+        }
+
+        if (string.IsNullOrWhiteSpace(config.DownloadCacheDirectory))
+        {
+            throw new BeepskyException("Download cache directory is not set in configuration.");
+        }
+
         builder.RegisterInstance(config)
                .AsSelf()
                .SingleInstance();

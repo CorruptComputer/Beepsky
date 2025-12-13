@@ -25,7 +25,16 @@ public static class Program
     /// <param name="args"></param>
     public static async Task Main(string[] args)
     {
-        await Host.CreateApplicationBuilder(args).BuildHost().RunHost();
+        try
+        {
+            Console.WriteLine("Starting up Beepsky...");
+            await Host.CreateApplicationBuilder(args).BuildHost().RunHost();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Beepsky failed to start up: " + ex.Message);
+            Console.WriteLine(ex.StackTrace);
+        }
     }
 
     private static IHost BuildHost(this HostApplicationBuilder builder)
