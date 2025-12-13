@@ -2,6 +2,7 @@
   "BeepskyConfiguration": {
     "DiscordBotToken": "",
     "DatabaseConnectionString": "",
-    "DownloadCache": "/tmp/beepsky"
+    "DownloadCache": "",
+    "LLamaModel": ""
   }
 }

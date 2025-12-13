@@ -22,4 +22,10 @@ public sealed record BeepskyConfiguration
     ///   The download cache directory
     /// </summary>
     public required string DownloadCache { get; init; }
+
+    /// <summary>
+    ///   Optionally, the path to the LLama model file
+    ///   GGUF format is required, quantized models are recommended over fp16 for performance
+    /// </summary>
+    public string? LLamaModel { get; init; }
 }

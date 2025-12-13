@@ -8,6 +8,8 @@ using Serilog;
 using NetCord.Hosting.Services.Commands;
 using Beepsky.Features.Commands.Text;
 using Beepsky.Database.Operations;
+using LLama.Common;
+using LLama;
 
 namespace Beepsky;
 

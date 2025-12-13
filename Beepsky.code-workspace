@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
+		"github.copilot.chat.codeGeneration.useInstructionFiles": true,
 		"entityframework.project": "Beepsky",
 		"entityframework.startupProject": "Beepsky",
 		"entityframework.commands": {
