@@ -10,7 +10,7 @@
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>Recommended</AnalysisMode>
-    <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-x64</RuntimeIdentifier>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 
     <!-- Assembly info -->
     <VersionPrefix>0.0.1</VersionPrefix>
