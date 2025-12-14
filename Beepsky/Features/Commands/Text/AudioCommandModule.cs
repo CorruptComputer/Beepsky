@@ -1,4 +1,5 @@
 using System.Text;
+using Beepsky.Features.Jolly;
 using Beepsky.Services;
 using NetCord.Gateway;
 using NetCord.Rest;
@@ -7,7 +8,7 @@ using NetCord.Services.Commands;
 namespace Beepsky.Features.Commands.Text;
 
 /// <inheritdoc />
-public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<CommandContext>
+public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : CommandModule<CommandContext>
 {
     /// <summary>
     ///   YouTube command
@@ -16,7 +17,7 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     [Command("q")]
-    public string QueueTrack(string track)
+    public async Task<string> QueueTrack(string track)
     {
 
         if (Context.Guild is null)
@@ -32,7 +33,17 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
 
         ulong voiceChannelId = voiceState.ChannelId.GetValueOrDefault();
 
-        bool added = audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
+        bool added;
+
+        if (track.Equals("christmas", StringComparison.OrdinalIgnoreCase))
+        {
+            CommandResponse resp = await sender.Send(new QueueRandomChristmasSongs.Command(Context.Guild.Id, voiceChannelId));
+            added = resp.Success;
+        }
+        else
+        {
+            added = audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
+        }
 
         return added
             ? "🫡"
