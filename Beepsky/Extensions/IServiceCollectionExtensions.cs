@@ -1,9 +1,11 @@
 using System.Globalization;
 using Beepsky.DiscordEventHandlers;
+using Beepsky.Features.Commands;
 using Beepsky.Services;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.Commands;
+using NetCord.Services.Commands;
 using Serilog;
 
 namespace Beepsky.Extensions;
@@ -52,6 +54,7 @@ public static class IServiceCollectionExtensions
         {
             options.Prefix = new(BeepskyConfiguration.Prefix, 1);
             options.IgnoreCase = true;
+            options.ResultHandler = new BeepskyCommandResultHandler<CommandContext>();
         });
     }
 

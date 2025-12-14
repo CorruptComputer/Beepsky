@@ -11,17 +11,15 @@ public class SystemCommandModule(IHostApplicationLifetime hostApplicationLifetim
     /// </summary>
     /// <returns></returns>
     [Command("shutdown")]
-    public string Stop()
+    public async Task StopAsync()
     {
         // Ideally all the commands in this module should have these same restrictions, need to look into these further:
         // https://netcord.dev/guides/services/preconditions.html
         if (IsChannelDm() && IsUserAdmin())
         {
+            await Context.Message.ReplyAsync("GOODBYE.");
             hostApplicationLifetime.StopApplication();
-            return "Goodbye!";
         }
-
-        return "Command not found.";
     }
 
     private bool IsUserAdmin()
