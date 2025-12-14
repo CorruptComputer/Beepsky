@@ -1,3 +1,5 @@
+using Serilog;
+
 namespace Beepsky.Extensions;
 
 /// <summary>
@@ -17,14 +19,22 @@ public static class TaskExtensions
     /// <param name="tasksLinkedCts"></param>
     /// <returns></returns>
     /// <exception cref="OperationCanceledException"></exception>
-    public static async Task AwaitWithTimeout<TSource>(this Task<TSource> task, TimeSpan timeout, Action<TSource>? onSuccess = null, Action? onTimeout = null, Action? onComplete = null, CancellationTokenSource? tasksLinkedCts = null)
+    public static async Task AwaitWithTimeout<TSource>(this Task<TSource> task, TimeSpan timeout, Func<TSource, Task>? onSuccess = null, Func<Task>? onTimeout = null, Func<Task>? onComplete = null, CancellationTokenSource? tasksLinkedCts = null)
     {
         if (await Task.WhenAny(task, Task.Delay(timeout), WaitTillCancelled(tasksLinkedCts?.Token ?? default)) == task)
         {
             if (onSuccess is not null)
             {
-                // woo hoo
-                onSuccess(await task);
+                try
+                {
+                    // woo hoo
+                    await onSuccess(await task);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in onSuccess callback of AwaitWithTimeout");
+                    throw;
+                }
             }
         }
         else
@@ -37,8 +47,16 @@ public static class TaskExtensions
 
             if (onTimeout is not null)
             {
-                // Probably handle it gracefully
-                onTimeout();
+                try
+                {
+                    // Probably handle it gracefully
+                    await onTimeout();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in onTimeout callback of AwaitWithTimeout");
+                    throw;
+                }
             }
             else
             {
@@ -49,8 +67,16 @@ public static class TaskExtensions
 
         if (onComplete is not null)
         {
-            // In places where things need to be disposed, this is nice
-            onComplete();
+            try
+            {
+                // In places where things need to be disposed, this is nice
+                await onComplete();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in onComplete callback of AwaitWithTimeout");
+                throw;
+            }
         }
     }
 
@@ -65,14 +91,22 @@ public static class TaskExtensions
     /// <param name="tasksLinkedCts"></param>
     /// <returns></returns>
     /// <exception cref="OperationCanceledException"></exception>
-    public static async Task AwaitWithTimeout(this Task task, TimeSpan timeout, Action? onSuccess = null, Action? onTimeout = null, Action? onComplete = null, CancellationTokenSource? tasksLinkedCts = null)
+    public static async Task AwaitWithTimeout(this Task task, TimeSpan timeout, Func<Task>? onSuccess = null, Func<Task>? onTimeout = null, Func<Task>? onComplete = null, CancellationTokenSource? tasksLinkedCts = null)
     {
         if (await Task.WhenAny(task, Task.Delay(timeout), WaitTillCancelled(tasksLinkedCts?.Token ?? default)) == task)
         {
             if (onSuccess is not null)
             {
-                // woo hoo
-                onSuccess();
+                try
+                {
+                    // woo hoo
+                    await onSuccess();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in onSuccess callback of AwaitWithTimeout");
+                    throw;
+                }
             }
         }
         else
@@ -85,8 +119,16 @@ public static class TaskExtensions
 
             if (onTimeout is not null)
             {
-                // Probably handle it gracefully
-                onTimeout();
+                try
+                {
+                    // Probably handle it gracefully
+                    await onTimeout();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in onTimeout callback of AwaitWithTimeout");
+                    throw;
+                }
             }
             else
             {
@@ -97,8 +139,16 @@ public static class TaskExtensions
 
         if (onComplete is not null)
         {
-            // In places where things need to be disposed, this is nice
-            onComplete();
+            try
+            {
+                // In places where things need to be disposed, this is nice
+                await onComplete();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in onComplete callback of AwaitWithTimeout");
+                throw;
+            }
         }
     }
 

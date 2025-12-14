@@ -107,19 +107,27 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
             return;
         }
 
-        StringBuilder response = new($"Currently Playing: {(currentlyPlaying is not null ? currentlyPlaying.TrackUri.ToString() : "Nothing")}");
+
+
+        StringBuilder response = new($"Currently Playing: ");
+        if (currentlyPlaying is not null)
+        {
+            response.Append(GetFormattedTrackTitle(currentlyPlaying));
+        }
+        else
+        {
+            response.Append("Nothing");
+        }
+
         if (queue.Any())
         {
             response.Append("\n\nUp Next:\n");
             int index = 1;
             foreach (QueuedAudioTrack track in queue)
             {
-                //response.Append($"{index}. {track.TrackUri} ({Enum.GetName(track.CurrentState)})\n");
-
-                // Need to do this shit the painful way since the above is an error with <AnalysisMode>Recommended</AnalysisMode>
                 response.Append(index);
                 response.Append(". ");
-                response.Append(track.TrackUri);
+                response.Append(GetFormattedTrackTitle(track));
                 response.Append(" (");
                 response.Append(Enum.GetName(track.CurrentState));
                 response.Append(")\n");
@@ -132,6 +140,22 @@ public class AudioCommandModule(AudioQueueService audioQueue) : CommandModule<Co
             Content = response.ToString(),
             Flags = MessageFlags.SuppressEmbeds
         });
+    }
+
+    private static string GetFormattedTrackTitle(QueuedAudioTrack track)
+    {
+        string title = string.Empty;
+
+        if (track.Title is not null)
+        {
+            title += $"[{track.Title}]({track.TrackUri})";
+        }
+        else
+        {
+            title += track.TrackUri.ToString();
+        }
+
+        return title;
     }
 
     // These add some nice flavor, but felt a little too much to me

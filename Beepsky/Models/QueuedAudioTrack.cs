@@ -36,6 +36,16 @@ public sealed record QueuedAudioTrack
     public required Uri TrackUri { get; init; }
 
     /// <summary>
+    ///   The title of the track, if known
+    /// </summary>
+    public string? Title { get; set; }
+
+    /// <summary>
+    ///   The duration of the track, if known
+    /// </summary>
+    public TimeSpan? Duration { get; set; }
+
+    /// <summary>
     ///   If downloaded, the file path of the downloaded audio file
     /// </summary>
     public string? DownloadedFilePath { get; set; }

@@ -18,9 +18,28 @@ public sealed class IsMessageWarhammerRelated : IRequestHandler<IsMessageWarhamm
         "eldar",
         "aeldari",
         "games workshop",
-        "chaos space",
+        "chaos marine",
         "primarch",
-        "codex"
+        "codex",
+        "khorne",
+        "nurgle",
+        "tzeentch",
+        "slaanesh",
+        "world eater",
+        "iron warrior",
+        "raven guard",
+        "blood angel",
+        "ultramarine",
+        "dark angel",
+        "grey knight",
+        "inquisition",
+        "tau",
+        "genestealer",
+        "imperial guard",
+        "adeptus mechanicus",
+        "adeptus custodes",
+        "sister of battle",
+        "sisters of battle"
     ];
 
     /// <summary>

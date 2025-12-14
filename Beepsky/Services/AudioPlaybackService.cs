@@ -152,19 +152,19 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             try
             {
                 await ffmpeg.StandardOutput.BaseStream.CopyToAsync(voiceConnection.OpusEncodeStream, track.CancellationTokenSource.Token).AwaitWithTimeout(
-                TimeSpan.FromMinutes(60),
+                track.Duration ?? TimeSpan.FromMinutes(10),
                 onSuccess: async () =>
                 {
                     Log.Information("Finished playing track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
                     string ffmpegErrors = await ffmpeg.StandardError.ReadToEndAsync();
                     await voiceConnection.OpusEncodeStream.FlushAsync();
                 },
-                onTimeout: () =>
+                onTimeout: async () =>
                 {
                     Log.Warning("FFmpeg process timed out for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
                     ffmpeg.Kill();
                 },
-                onComplete: () =>
+                onComplete: async () =>
                 {
                     ffmpeg.Dispose();
                     voiceConnection.CurrentlyPlaying = null;

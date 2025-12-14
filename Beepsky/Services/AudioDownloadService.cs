@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Beepsky.Extensions;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -32,10 +33,37 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                         if (downloadedFilePath is not null)
                         {
                             nextTrackToDownload.DownloadedFilePath = downloadedFilePath;
+                            string metadataPath = downloadedFilePath + ".info.json";
+                            if (File.Exists(metadataPath))
+                            {
+                                string metadataJson = await File.ReadAllTextAsync(metadataPath, nextTrackToDownload.CancellationTokenSource.Token);
+                                if (!string.IsNullOrWhiteSpace(metadataJson))
+                                {
+                                    try
+                                    {
+                                        YouTubeMetadata? metadata = JsonSerializer.Deserialize<YouTubeMetadata>(metadataJson);
+                                        if (metadata is not null)
+                                        {
+                                            nextTrackToDownload.Title = metadata.VideoTitle;
+
+                                            if (metadata.DurationInSeconds is not null)
+                                            {
+                                                nextTrackToDownload.Duration = TimeSpan.FromSeconds(metadata.DurationInSeconds.Value);
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Error(ex, "Error parsing YouTube metadata JSON for track {TrackUri}", nextTrackToDownload.TrackUri);
+                                    }
+                                }
+                                // Parse JSON for title and duration
+                            }
                         }
                         else
                         {
                             Log.Warning("Failed to download track: {TrackUri}", nextTrackToDownload.TrackUri);
+                            nextTrackToDownload.CancellationTokenSource.Cancel(); // Yeet
                         }
                         break;
 
@@ -87,6 +115,7 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
             List<string> arguments = [
                 "--output", outputFilePath,
                 "-t", "mp3",
+                "--write-info-json",
                 uri.ToString()
             ];
 
@@ -113,13 +142,13 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                     string ytdlpOutput = await ytdlp.StandardOutput.ReadToEndAsync();
                     string ytdlpErrors = await ytdlp.StandardError.ReadToEndAsync();
                 },
-                onTimeout: () =>
+                onTimeout: async () =>
                 {
                     Log.Warning("yt-dlp timed out {Track}", outputFilePath);
                     ytdlp.Kill();
                     outputFilePath = null;
                 },
-                onComplete: () =>
+                onComplete: async () =>
                 {
                     ytdlp.Dispose();
                 },
