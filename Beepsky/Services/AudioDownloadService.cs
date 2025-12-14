@@ -142,15 +142,17 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                     string ytdlpOutput = await ytdlp.StandardOutput.ReadToEndAsync();
                     string ytdlpErrors = await ytdlp.StandardError.ReadToEndAsync();
                 },
-                onTimeout: async () =>
+                onTimeout: () =>
                 {
                     Log.Warning("yt-dlp timed out {Track}", outputFilePath);
                     ytdlp.Kill();
                     outputFilePath = null;
+                    return Task.CompletedTask;
                 },
-                onComplete: async () =>
+                onComplete: () =>
                 {
                     ytdlp.Dispose();
+                    return Task.CompletedTask;
                 },
                 tasksLinkedCts: linkedCts);
             }

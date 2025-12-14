@@ -159,15 +159,17 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                     string ffmpegErrors = await ffmpeg.StandardError.ReadToEndAsync();
                     await voiceConnection.OpusEncodeStream.FlushAsync();
                 },
-                onTimeout: async () =>
+                onTimeout: () =>
                 {
                     Log.Warning("FFmpeg process timed out for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
                     ffmpeg.Kill();
+                    return Task.CompletedTask;
                 },
-                onComplete: async () =>
+                onComplete: () =>
                 {
                     ffmpeg.Dispose();
                     voiceConnection.CurrentlyPlaying = null;
+                    return Task.CompletedTask;
                 },
                 tasksLinkedCts: track.CancellationTokenSource);
             }
