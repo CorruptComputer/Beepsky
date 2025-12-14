@@ -47,6 +47,7 @@ public static class IServiceCollectionExtensions
         .AddGatewayHandler<BeepskyReplyMessageCreateHandler>()
         .AddGatewayHandler<GuildUserStatisticMessageCreateHandler>()
         .AddGatewayHandler<VoiceStateUpdateHandler>()
+        .AddGatewayHandler<GatewayConnectedHandler>()
         .AddCommands(options =>
         {
             options.Prefix = new(BeepskyConfiguration.Prefix, 1);
