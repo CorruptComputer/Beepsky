@@ -37,7 +37,7 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
     public record Command(ulong GuildId, ulong VoiceChannelId) : IRequest<CommandResponse>;
 
     /// <inheritdoc />
-    public async Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
+    public Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
     {
         // Get the songs in a random order
         IEnumerable<string> shuffledSongs = christmasSongs.OrderBy(_ => rdm.Next());
@@ -47,10 +47,10 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
             bool success = audioQueueService.AddTrackToQueue(request.VoiceChannelId, request.GuildId, song);
             if (!success)
             {
-                return CommandResponse.Fail("Failed to add a track to the queue: " + song);
+                return Task.FromResult(CommandResponse.Fail("Failed to add a track to the queue: " + song));
             }
         }
 
-        return CommandResponse.Pass();
+        return Task.FromResult(CommandResponse.Pass());
     }
 }
