@@ -1,13 +1,10 @@
 using System.Text.RegularExpressions;
-using LLama;
-using LLama.Common;
 using NetCord.Gateway;
-using NetCord.Rest;
 
 namespace Beepsky.Features.Chatty;
 
 /// <inheritdoc />
-public sealed partial class BeepskyChat(BeepskyConfiguration config, GatewayClient gatewayClient) : IRequestHandler<BeepskyChat.Command>
+public sealed partial class BeepskyChat(BeepskyConfiguration config) : IRequestHandler<BeepskyChat.Command>
 {
     private const string defaultPromptText = """
         You are Beepsky, a bureaucratic policing robot in an overly opressive city.
@@ -33,77 +30,80 @@ public sealed partial class BeepskyChat(BeepskyConfiguration config, GatewayClie
     /// <inheritdoc />
     public async Task Handle(Command request, CancellationToken cancellationToken)
     {
-        bool criminalDetected = false;
-        if (request.Message.Author.Id is (ulong)WellKnownUsers.Skeleton
-                                      or (ulong)WellKnownUsers.Svally)
-        {
-            criminalDetected = true;
-        }
+        //bool criminalDetected = false;
+        //if (request.Message.Author.Id is (ulong)WellKnownUsers.Skeleton
+        //                              or (ulong)WellKnownUsers.Svally)
+        //{
+        //    criminalDetected = true;
+        //}
 
         string? response = null;
         if (config.LLamaModel is not null
             && File.Exists(config.LLamaModel))
         {
-            DateTimeOffset lastTypingTime = DateTimeOffset.UtcNow;
-            if (request.Message.Channel is not null)
-            {
-                await request.Message.Channel.TriggerTypingStateAsync(cancellationToken: cancellationToken);
-            }
+            // LlamaSharp breaks publishing, so disabling for now:
+            // https://github.com/SciSharp/LLamaSharp/issues/382
 
-            ModelParams parameters = new(config.LLamaModel)
-            {
-                ContextSize = 2048, // The longest length of chat as memory.
-            };
-            using LLamaWeights model = LLamaWeights.LoadFromFile(parameters);
-            using LLamaContext context = model.CreateContext(parameters);
-            InteractiveExecutor executor = new(context);
+            //DateTimeOffset lastTypingTime = DateTimeOffset.UtcNow;
+            //if (request.Message.Channel is not null)
+            //{
+            //    await request.Message.Channel.TriggerTypingStateAsync(cancellationToken: cancellationToken);
+            //}
 
-            ChatHistory chatHistory = new([
-                new ChatHistory.Message(AuthorRole.System, defaultPromptText),
-            ]);
+            //ModelParams parameters = new(config.LLamaModel)
+            //{
+            //    ContextSize = 2048, // The longest length of chat as memory.
+            //};
+            //using LLamaWeights model = LLamaWeights.LoadFromFile(parameters);
+            //using LLamaContext context = model.CreateContext(parameters);
+            //InteractiveExecutor executor = new(context);
 
-            if (criminalDetected)
-            {
-                chatHistory.Messages.Add(new ChatHistory.Message(AuthorRole.System, criminalDetectedPromptText));
-            }
+            //ChatHistory chatHistory = new([
+            //    new ChatHistory.Message(AuthorRole.System, defaultPromptText),
+            //]);
 
-            ChatSession session = new(executor, chatHistory);
+            //if (criminalDetected)
+            //{
+            //    chatHistory.Messages.Add(new ChatHistory.Message(AuthorRole.System, criminalDetectedPromptText));
+            //}
 
-            InferenceParams inferenceParams = new()
-            {
-                MaxTokens = 128,
-                AntiPrompts = ["User:", ".\n", "?\n", "!\n"],
-            };
+            //ChatSession session = new(executor, chatHistory);
 
-            List<string> responses = [];
-            // Remove the mention from the message
-            string userPromptStr = request.Message.Content.Replace($"<@{gatewayClient.Id}>", string.Empty).Trim();
-            await foreach (string text in session.ChatAsync(new ChatHistory.Message(AuthorRole.User, userPromptStr), inferenceParams, cancellationToken))
-            {
-                responses.Add(text);
+            //InferenceParams inferenceParams = new()
+            //{
+            //    MaxTokens = 128,
+            //    AntiPrompts = ["User:", ".\n", "?\n", "!\n"],
+            //};
 
-                if (request.Message.Channel is not null
-                    && (DateTimeOffset.UtcNow - lastTypingTime).TotalSeconds >= 5)
-                {
-                    lastTypingTime = DateTimeOffset.UtcNow;
-                    await request.Message.Channel.TriggerTypingStateAsync(cancellationToken: cancellationToken);
-                }
-            }
+            //List<string> responses = [];
+            //// Remove the mention from the message
+            //string userPromptStr = request.Message.Content.Replace($"<@{gatewayClient.Id}>", string.Empty).Trim();
+            //await foreach (string text in session.ChatAsync(new ChatHistory.Message(AuthorRole.User, userPromptStr), inferenceParams, cancellationToken))
+            //{
+            //    responses.Add(text);
 
-            response = chatHistory.Messages.FirstOrDefault(m => m.AuthorRole == AuthorRole.Assistant)?.Content;
+            //    if (request.Message.Channel is not null
+            //        && (DateTimeOffset.UtcNow - lastTypingTime).TotalSeconds >= 5)
+            //    {
+            //        lastTypingTime = DateTimeOffset.UtcNow;
+            //        await request.Message.Channel.TriggerTypingStateAsync(cancellationToken: cancellationToken);
+            //    }
+            //}
 
-            Regex allUpperCaseSentences = FindAllUpperCaseSentencesRegex();
-            MatchCollection matches = allUpperCaseSentences.Matches(response ?? string.Empty);
-            if (matches.Count > 0)
-            {
-                response = matches.FirstOrDefault()?.Value;
-            }
-            else
-            {
-                response = null;
-            }
+            //response = chatHistory.Messages.FirstOrDefault(m => m.AuthorRole == AuthorRole.Assistant)?.Content;
 
-            response = response?.Trim();
+            //Regex allUpperCaseSentences = FindAllUpperCaseSentencesRegex();
+            //MatchCollection matches = allUpperCaseSentences.Matches(response ?? string.Empty);
+            //if (matches.Count > 0)
+            //{
+            //    response = matches.FirstOrDefault()?.Value;
+            //}
+            //else
+            //{
+            //    response = null;
+            //}
+
+            //response = response?.Trim();
         }
 
         if (string.IsNullOrWhiteSpace(response))

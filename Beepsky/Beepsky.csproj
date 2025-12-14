@@ -10,7 +10,6 @@
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisMode>Recommended</AnalysisMode>
-    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 
     <!-- Assembly info -->
     <VersionPrefix>0.0.1</VersionPrefix>
@@ -37,8 +36,8 @@
     <PackageReference Include="Autofac" Version="9.0.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="libsodium" Version="1.0.20.1" />
-    <PackageReference Include="LLamaSharp" Version="0.25.0" />
-    <PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.25.0" />
+    <!--PackageReference Include="LLamaSharp" Version="0.25.0" />
+    <PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.25.0" /-->
     <PackageReference Include="NetCord" Version="1.0.0-alpha.450" />
     <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.450" />
     <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.450" />
