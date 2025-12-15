@@ -24,9 +24,9 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
         "https://www.youtube.com/watch?v=hLf0-lro8X8", // Frank Sinatra - Jingle Bells
         "https://www.youtube.com/watch?v=sE3uRRFVsmc", // Frank Sinatra - Let it snow
         "https://www.youtube.com/watch?v=8Q94C9FRRpM", // Frank Sinatra - Santa Claus is Coming to Town
-        "https://www.youtube.com/watch?v=8CKEcOBCSQg", // Tyler, The Creator - I Am The Grinch
-        "https://www.youtube.com/watch?v=oMCG-fL-uCM", // Tyler, The Creator - Big Bag
-        "https://www.youtube.com/watch?v=QKiCGSieghA", // Tyler, The Creator - LIGHTS ON
+        //"https://www.youtube.com/watch?v=8CKEcOBCSQg", // Tyler, The Creator - I Am The Grinch
+        //"https://www.youtube.com/watch?v=oMCG-fL-uCM", // Tyler, The Creator - Big Bag
+        //"https://www.youtube.com/watch?v=QKiCGSieghA", // Tyler, The Creator - LIGHTS ON
     ];
 
     /// <summary>
