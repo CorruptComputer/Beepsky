@@ -89,10 +89,15 @@ public class AudioQueueService
     public bool AddStopForGuild(ulong guildId)
     {
         // Clear the current queue for the guild
-        IEnumerable<KeyValuePair<Guid, QueuedAudioTrack>> tracks = TrackQueue.Where(track => track.Value.GuildId == guildId);
-        foreach (KeyValuePair<Guid, QueuedAudioTrack> track in tracks)
+        IEnumerable<QueuedAudioTrack> tracks = TrackQueue.Values.Where(track => track.GuildId == guildId);
+        foreach (QueuedAudioTrack track in tracks)
         {
-            track.Value.CancellationTokenSource.Cancel();
+            track.CurrentState = QueuedAudioTrack.State.Cancelled;
+            try
+            {
+                track.CancellationTokenSource.Cancel();
+            }
+            catch (ObjectDisposedException) { /* Ignore */ }
         }
 
         // Finally need to skip the currently playing track

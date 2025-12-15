@@ -63,7 +63,12 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                         else
                         {
                             Log.Warning("Failed to download track: {TrackUri}", nextTrackToDownload.TrackUri);
-                            nextTrackToDownload.CancellationTokenSource.Cancel(); // Yeet
+
+                            try
+                            {
+                                nextTrackToDownload.CancellationTokenSource.Cancel(); // Yeet
+                            }
+                            catch (ObjectDisposedException) { /* Ignore */ }
                         }
                         break;
 

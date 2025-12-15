@@ -24,7 +24,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Need to stop whats currently playing
+            // Need to skip whats currently playing
             IEnumerable<ulong> guildsToSkip = audioQueue.GetGuildsWithSkips();
             foreach (ulong guildId in guildsToSkip)
             {
@@ -32,7 +32,12 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 if (vc is not null)
                 {
                     Log.Information("Skip requested for guild {GuildId}, cancelling playback", guildId);
-                    vc.CurrentlyPlaying?.CancellationTokenSource.Cancel();
+                    try
+                    {
+                        vc.CurrentlyPlaying?.CancellationTokenSource.Cancel();
+                    }
+                    catch (ObjectDisposedException) { /* Ignore */ }
+
                     audioQueue.ClearSkipForGuild(guildId);
                 }
             }
@@ -42,7 +47,8 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             foreach (ulong guildId in guildsWithQueues)
             {
                 QueuedAudioTrack? nextTrack = audioQueue.GetNextPlayback(guildId);
-                while (nextTrack is not null && nextTrack.CancellationTokenSource.IsCancellationRequested)
+                while (nextTrack is not null && (nextTrack.CancellationTokenSource.IsCancellationRequested
+                                                    || nextTrack.CurrentState == QueuedAudioTrack.State.Cancelled))
                 {
                     Log.Information("Skipping cancelled track");
                     audioQueue.RemoveTrack(nextTrack);
