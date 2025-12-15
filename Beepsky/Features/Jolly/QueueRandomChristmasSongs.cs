@@ -41,6 +41,8 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
         "https://www.youtube.com/watch?v=7T4uI9Kde4U", // Heat Miser - I'm Mr. Green Christmas
         "https://www.youtube.com/watch?v=vLJERILmd8w", // Anuc7777 - The Christmas Song
         "https://www.youtube.com/watch?v=tQhs5pAhsOg", // Anuc7777 - Last Christmas
+        "https://www.youtube.com/watch?v=TLAnwt90VZk", // John Williams - Carol of the Bells
+        "https://www.youtube.com/watch?v=xp9rK8FmYog", // The Beach Boys - Little Saint Nick
     ];
 
     /// <summary>
