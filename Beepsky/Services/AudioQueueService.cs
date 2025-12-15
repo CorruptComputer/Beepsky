@@ -92,7 +92,6 @@ public class AudioQueueService
         IEnumerable<QueuedAudioTrack> tracks = TrackQueue.Values.Where(track => track.GuildId == guildId);
         foreach (QueuedAudioTrack track in tracks)
         {
-            track.CurrentState = QueuedAudioTrack.State.Cancelled;
             try
             {
                 track.CancellationTokenSource.Cancel();

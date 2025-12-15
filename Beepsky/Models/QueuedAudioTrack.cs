@@ -78,12 +78,7 @@ public sealed record QueuedAudioTrack
         /// <summary>
         ///   Is currently being played
         /// </summary>
-        Playing,
-
-        /// <summary>
-        ///   Playback has been cancelled
-        /// </summary>
-        Cancelled
+        Playing
     }
 
     /// <summary>

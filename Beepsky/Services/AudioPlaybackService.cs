@@ -47,8 +47,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             foreach (ulong guildId in guildsWithQueues)
             {
                 QueuedAudioTrack? nextTrack = audioQueue.GetNextPlayback(guildId);
-                while (nextTrack is not null && (nextTrack.CancellationTokenSource.IsCancellationRequested
-                                                    || nextTrack.CurrentState == QueuedAudioTrack.State.Cancelled))
+                while (nextTrack is not null && nextTrack.CancellationTokenSource.IsCancellationRequested)
                 {
                     Log.Information("Skipping cancelled track");
                     audioQueue.RemoveTrack(nextTrack);
