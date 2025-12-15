@@ -118,8 +118,6 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             return;
         }
 
-
-
         StringBuilder response = new($"Currently Playing: ");
         if (currentlyPlaying is not null)
         {
@@ -128,6 +126,12 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
         else
         {
             response.Append("Nothing");
+        }
+
+        bool hasSkip = audioQueue.GetGuildsWithSkips().Contains(Context.Guild.Id);
+        if (hasSkip)
+        {
+            response.Append("\n*A skip has been requested for the currently playing track.*");
         }
 
         if (queue.Any())

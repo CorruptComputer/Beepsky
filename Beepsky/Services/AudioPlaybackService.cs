@@ -28,85 +28,111 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             IEnumerable<ulong> guildsToSkip = audioQueue.GetGuildsWithSkips();
             foreach (ulong guildId in guildsToSkip)
             {
-                VoiceConnection? vc = voiceConnectionService.GetVoiceConnectionForGuild(guildId);
-                if (vc is not null)
-                {
-                    Log.Information("Skip requested for guild {GuildId}, cancelling playback", guildId);
-                    try
-                    {
-                        vc.CurrentlyPlaying?.CancellationTokenSource.Cancel();
-                    }
-                    catch (ObjectDisposedException) { /* Ignore */ }
-
-                    audioQueue.ClearSkipForGuild(guildId);
-                }
+                SkipCurrentlyPlayingTrack(guildId);
             }
 
             // Play next track
             IEnumerable<ulong> guildsWithQueues = audioQueue.GetGuildsWithPlaybackQueues();
             foreach (ulong guildId in guildsWithQueues)
             {
-                QueuedAudioTrack? nextTrack = audioQueue.GetNextPlayback(guildId);
-                while (nextTrack is not null && nextTrack.CancellationTokenSource.IsCancellationRequested)
-                {
-                    Log.Information("Skipping cancelled track");
-                    audioQueue.RemoveTrack(nextTrack);
-                    nextTrack = audioQueue.GetNextPlayback(guildId);
-                }
-
-                if (PlaybackTasks.ContainsKey(guildId))
-                {
-                    // Done playing
-                    if (PlaybackTasks[guildId].IsCompleted || PlaybackTasks[guildId].IsCanceled)
-                    {
-                        PlaybackTasks.Remove(guildId, out _);
-                        QueuedAudioTrack? completedTrack = audioQueue.GetCurrentlyPlayingTrackForGuild(guildId);
-                        if (completedTrack is not null)
-                        {
-                            Log.Information("Completed playback for track {Track} in guild {GuildId}", completedTrack.DownloadedFilePath, guildId);
-                            audioQueue.RemoveTrack(completedTrack);
-                        }
-
-                        // Nothing next
-                        if (nextTrack is null)
-                        {
-                            Log.Information("No tracks left to play for guild {GuildId}", guildId);
-                            await voiceConnectionService.DisconnectFromGuildAsync(guildId, stoppingToken);
-                            continue;
-                        }
-                    }
-                    // Still playing
-                    else
-                    {
-                        continue;
-                    }
-                }
-
-                // Something next
-                if (nextTrack is not null && nextTrack.DownloadedFilePath is not null)
-                {
-                    Log.Information("Popped next track for guild {GuildId}: {Track}", guildId, nextTrack.DownloadedFilePath);
-
-                    PlaybackTasks[guildId] = Task.Run(async () =>
-                    {
-                        nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
-                        await PlayAudioFile(nextTrack);
-                    }, nextTrack.CancellationTokenSource.Token);
-                }
+                await ProcessQueueForGuildAsync(guildId);
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
         }
     }
 
-    /// <summary>
-    ///   Plays an audio file in a voice channel
-    /// </summary>
-    /// <param name="track"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    private void SkipCurrentlyPlayingTrack(ulong guildId)
+    {
+        Log.Information("Skip requested for guild {GuildId}, cancelling playback", guildId);
+
+        VoiceConnection? vc = voiceConnectionService.GetVoiceConnectionForGuild(guildId);
+        if (vc is not null)
+        {
+            try
+            {
+                vc.CurrentlyPlaying?.CancellationTokenSource.Cancel();
+            }
+            catch (ObjectDisposedException) { /* Ignore */ }
+        }
+
+        audioQueue.ClearSkipForGuild(guildId);
+    }
+
+    private async Task ProcessQueueForGuildAsync(ulong guildId)
+    {
+        // Get next track, skipping cancelled ones
+        QueuedAudioTrack? nextTrack = audioQueue.GetNextPlayback(guildId);
+        while (nextTrack?.CancellationTokenSource.IsCancellationRequested == true)
+        {
+            Log.Information("Next track {Track} in guild {GuildId} has been cancelled, removing from queue", nextTrack.DownloadedFilePath, guildId);
+            audioQueue.RemoveTrack(nextTrack);
+            nextTrack = audioQueue.GetNextPlayback(guildId);
+        }
+
+        QueuedAudioTrack? currentlyPlaying = audioQueue.GetCurrentlyPlayingTrackForGuild(guildId);
+        if (currentlyPlaying is not null)
+        {
+            if (currentlyPlaying.CancellationTokenSource.IsCancellationRequested)
+            {
+                Log.Information("Currently playing track {Track} in guild {GuildId} has been cancelled, removing from queue", currentlyPlaying.DownloadedFilePath, guildId);
+                audioQueue.RemoveTrack(currentlyPlaying);
+            }
+
+            // Edge case: currently playing but no task
+            if (!PlaybackTasks.ContainsKey(guildId))
+            {
+                Log.Warning("No playback task found for currently playing track {Track} in guild {GuildId}, cancelling playback", currentlyPlaying.DownloadedFilePath, guildId);
+                currentlyPlaying.CancellationTokenSource.Cancel();
+                audioQueue.RemoveTrack(currentlyPlaying);
+            }
+        }
+
+        if (PlaybackTasks.ContainsKey(guildId))
+        {
+            // Done playing
+            if (PlaybackTasks[guildId].IsCompleted || PlaybackTasks[guildId].IsCanceled)
+            {
+                PlaybackTasks.Remove(guildId, out _);
+                QueuedAudioTrack? completedTrack = audioQueue.GetCurrentlyPlayingTrackForGuild(guildId);
+                if (completedTrack is not null)
+                {
+                    Log.Information("Completed playback for track {Track} in guild {GuildId}", completedTrack.DownloadedFilePath, guildId);
+                    audioQueue.RemoveTrack(completedTrack);
+                }
+
+                // Nothing next
+                if (nextTrack is null)
+                {
+                    Log.Information("No tracks left to play for guild {GuildId}", guildId);
+                    await voiceConnectionService.DisconnectFromGuildAsync(guildId);
+                    return;
+                }
+            }
+            // Still playing
+            else
+            {
+                return;
+            }
+        }
+
+        // Something next
+        if (nextTrack is not null && nextTrack.DownloadedFilePath is not null)
+        {
+            Log.Information("Popped next track for guild {GuildId}: {Track}", guildId, nextTrack.DownloadedFilePath);
+
+            PlaybackTasks[guildId] = Task.Run(async () =>
+            {
+                nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
+                await PlayAudioFile(nextTrack);
+            }, nextTrack.CancellationTokenSource.Token);
+        }
+    }
+
     private async Task PlayAudioFile(QueuedAudioTrack track)
     {
+        Log.Information("Playback task started for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
+
         if (track.DownloadedFilePath is null)
         {
             Log.Error("Attempted to play track with null file path");
@@ -193,6 +219,8 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
         {
             track.CancellationTokenSource.Dispose();
         }
+
+        Log.Information("Playback task completed for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
     }
 }
 

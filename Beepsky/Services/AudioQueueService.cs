@@ -109,7 +109,7 @@ public class AudioQueueService
     /// <returns></returns>
     public IEnumerable<ulong> GetGuildsWithPlaybackQueues()
     {
-        return TrackQueue.Select(track => track.Value.GuildId).Distinct();
+        return TrackQueue.Values.Select(track => track.GuildId).Distinct();
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public class AudioQueueService
     /// <returns></returns>
     public IEnumerable<QueuedAudioTrack> GetQueueForGuild(ulong guildId)
     {
-        return TrackQueue.Where(track => track.Value.GuildId == guildId && track.Value.CurrentState != QueuedAudioTrack.State.Playing).Select(tp => tp.Value);
+        return TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState != QueuedAudioTrack.State.Playing);
     }
 
     /// <summary>
