@@ -27,6 +27,7 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
         //"https://www.youtube.com/watch?v=8CKEcOBCSQg", // Tyler, The Creator - I Am The Grinch
         //"https://www.youtube.com/watch?v=oMCG-fL-uCM", // Tyler, The Creator - Big Bag
         //"https://www.youtube.com/watch?v=QKiCGSieghA", // Tyler, The Creator - LIGHTS ON
+        "https://www.youtube.com/watch?v=pDGl2albRHk", // Wii Shop - All I Want for Christmas is You
     ];
 
     /// <summary>
