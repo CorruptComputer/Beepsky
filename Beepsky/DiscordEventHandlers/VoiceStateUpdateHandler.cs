@@ -39,10 +39,10 @@ public class VoiceStateUpdateHandler(GatewayClient gatewayClient, AudioQueueServ
         {
             if (botVoiceState?.ChannelId is not null)
             {
-                // Check if there is anyone left in the channel
-                bool anyoneLeft = allGuildVoiceStates.Values.Any(vs => vs.ChannelId == botVoiceState.ChannelId
-                                                                        && vs.UserId != gatewayClient.Id
-                                                                        && vs.UserId != arg.UserId);
+                IEnumerable<VoiceState> usersInBotChannel = allGuildVoiceStates.Values.Where(vs => vs.ChannelId == botVoiceState.ChannelId
+                                                                                                && vs.UserId != gatewayClient.Id);
+                // Check if there is anyone left in the channel, depending on timing the user that just left may or my not be in the cache still
+                bool anyoneLeft = usersInBotChannel.Any(vs => vs.UserId != arg.UserId);
                 if (!anyoneLeft)
                 {
                     audioQueueService.AddStopForGuild(arg.GuildId);

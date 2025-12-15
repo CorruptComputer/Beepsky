@@ -39,7 +39,11 @@ public sealed class IsMessageWarhammerRelated : IRequestHandler<IsMessageWarhamm
         "adeptus mechanicus",
         "adeptus custodes",
         "sister of battle",
-        "sisters of battle"
+        "sisters of battle",
+        "drukhari",
+        "harlequin",
+        "emperor's children",
+        "emperors children",
     ];
 
     /// <summary>
