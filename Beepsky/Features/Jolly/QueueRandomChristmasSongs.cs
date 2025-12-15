@@ -39,6 +39,8 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
         "https://www.youtube.com/watch?v=ziCsclD9jnY", // jschlatt - The Man with the Bag
         "https://www.youtube.com/watch?v=fEbFfoBPfw4", // Snow Miser - I'm Mr. White Christmas
         "https://www.youtube.com/watch?v=7T4uI9Kde4U", // Heat Miser - I'm Mr. Green Christmas
+        "https://www.youtube.com/watch?v=vLJERILmd8w", // Anuc7777 - The Christmas Song
+        "https://www.youtube.com/watch?v=tQhs5pAhsOg", // Anuc7777 - Last Christmas
     ];
 
     /// <summary>
