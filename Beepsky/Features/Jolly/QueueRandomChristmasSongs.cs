@@ -24,14 +24,25 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
         "https://www.youtube.com/watch?v=hLf0-lro8X8", // Frank Sinatra - Jingle Bells
         "https://www.youtube.com/watch?v=sE3uRRFVsmc", // Frank Sinatra - Let it snow
         "https://www.youtube.com/watch?v=8Q94C9FRRpM", // Frank Sinatra - Santa Claus is Coming to Town
-        //"https://www.youtube.com/watch?v=8CKEcOBCSQg", // Tyler, The Creator - I Am The Grinch
-        //"https://www.youtube.com/watch?v=oMCG-fL-uCM", // Tyler, The Creator - Big Bag
-        //"https://www.youtube.com/watch?v=QKiCGSieghA", // Tyler, The Creator - LIGHTS ON
         "https://www.youtube.com/watch?v=pDGl2albRHk", // Wii Shop - All I Want for Christmas is You
+        "https://www.youtube.com/watch?v=27sMIlSMqFE", // Bing Crosby - Mele Kalikimaka
+        "https://www.youtube.com/watch?v=6JeAnrziLLo", // jschlatt - Santa Claus is Coming to Town
+        "https://www.youtube.com/watch?v=1Ggr94QhXo4", // jschlatt - The Christmas Song
+        "https://www.youtube.com/watch?v=5O4yLDVBr4s", // jschlatt - Let it snow
+        "https://www.youtube.com/watch?v=KR7eJft_aqc", // jschlatt - Baby It's Cold Outside
+        "https://www.youtube.com/watch?v=dZVT60baWWA", // jschlatt - Happy Holidays
+        "https://www.youtube.com/watch?v=jZ0Q5zVCVJ8", // jschlatt - White Christmas
+        "https://www.youtube.com/watch?v=nyoQ_5Q7geo", // jschlatt - It's the Most Wonderful Time of the Year
+        "https://www.youtube.com/watch?v=uTJ4FXbzVBA", // jschlatt - Have Yourself a Merry Little Christmas
+        "https://www.youtube.com/watch?v=N6YE6ocl27o", // jschlatt - Mele Kalikimaka
+        "https://www.youtube.com/watch?v=f4p2-bp4zmc", // jschlatt - Sleigh Ride
+        "https://www.youtube.com/watch?v=ziCsclD9jnY", // jschlatt - The Man with the Bag
+        "https://www.youtube.com/watch?v=fEbFfoBPfw4", // Snow Miser - I'm Mr. White Christmas
+        "https://www.youtube.com/watch?v=7T4uI9Kde4U", // Heat Miser - I'm Mr. Green Christmas
     ];
 
     /// <summary>
-    ///   Queues a random christmas songs for playback in the channel
+    ///   Queues 5 random christmas songs for playback in the channel
     /// </summary>
     /// <param name="GuildId"></param>
     /// <param name="VoiceChannelId"></param>
@@ -41,7 +52,7 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
     public Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
     {
         // Get the songs in a random order
-        IEnumerable<string> shuffledSongs = christmasSongs.OrderBy(_ => rdm.Next());
+        IEnumerable<string> shuffledSongs = christmasSongs.OrderBy(_ => rdm.Next()).Take(5);
 
         foreach (string song in shuffledSongs)
         {
