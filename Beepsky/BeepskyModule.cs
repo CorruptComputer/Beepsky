@@ -26,6 +26,10 @@ public class BeepskyModule(BeepskyConfiguration config) : Module
                .AsSelf()
                .SingleInstance();
 
+        builder.RegisterType<LLMService>()
+               .AsSelf()
+               .SingleInstance();
+
         QuestyConfigurationBuilder questyConfig = QuestyConfigurationBuilder.Create(ThisAssembly)
             .WithAllOpenGenericHandlerTypesRegistered()
             .WithCustomPipelineBehaviors([

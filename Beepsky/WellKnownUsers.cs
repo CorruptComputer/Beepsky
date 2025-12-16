@@ -23,5 +23,10 @@ public enum WellKnownUsers : ulong
     /// <summary>
     ///   Svally
     /// </summary>
-    Svally = 280866038122414081
+    Svally = 280866038122414081,
+
+    /// <summary>
+    ///   Copyright strike
+    /// </summary>
+    Copy = 129145536950435840,
 }

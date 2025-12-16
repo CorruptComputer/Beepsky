@@ -15,7 +15,13 @@ public sealed class NormalChat(ISender sender) : IRequestHandler<NormalChat.Comm
     /// <inheritdoc />
     public async Task Handle(Command request, CancellationToken cancellationToken)
     {
-        if (request.Message.Author.Id == (ulong)WellKnownUsers.Skeleton)
+        if (request.Message.Author.Id is (ulong)WellKnownUsers.Skeleton
+        // These kinda suck to read, but too bad! I need a way to test this
+#if DEBUG
+         or (ulong)WellKnownUsers.Monke)
+#else
+         )
+#endif
         {
             // Tell skeleton to go back to the warhammer channel if he talks about it outside there, 1 in 20 chance
             bool isWarhammerRelated = await sender.Send(new IsMessageWarhammerRelated.Command(request.Message.Content), cancellationToken);
@@ -24,7 +30,12 @@ public sealed class NormalChat(ISender sender) : IRequestHandler<NormalChat.Comm
                 && request.Message.ChannelId != (ulong)WellKnownChannels.Warhammer)
             {
                 // Roll a d20
-                int roll = rdm.Next(20) + 1;
+                int roll =
+#if DEBUG
+                20;
+#else
+                rdm.Next(20) + 1;
+#endif
                 // Oh yeah, its show time
                 if (roll == 20)
                 {

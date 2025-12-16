@@ -24,8 +24,7 @@ public sealed record BeepskyConfiguration
     public required string DownloadCache { get; init; }
 
     /// <summary>
-    ///   Optionally, the path to the LLama model file
-    ///   GGUF format is required, quantized models are recommended over fp16 for performance
+    ///   Optionally, the URL of the Ollama server to use for AI responses
     /// </summary>
-    public string? LLamaModel { get; init; }
+    public string? OllamaUrl { get; init; }
 }

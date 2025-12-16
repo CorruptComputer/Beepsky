@@ -13,5 +13,10 @@ public enum WellKnownServers : ulong
     /// <summary>
     ///   The new hotness
     /// </summary>
-    EightyTwoNineNine = 852754205122363412
+    EightyTwoNineNine = 852754205122363412,
+
+    /// <summary>
+    ///   Beepsky testing server
+    /// </summary>
+    NotesToSelf = 778302356298792991,
 }
