@@ -1,10 +1,11 @@
 using Beepsky.Services;
 using NetCord.Gateway;
+using NetCord.Rest;
 
 namespace Beepsky.Features.Chatty;
 
 /// <inheritdoc />
-public sealed partial class BeepskyChat(LLMService llmService, GatewayClient gatewayClient) : IRequestHandler<BeepskyChat.Command>
+public sealed partial class BeepskyChat(LLMService llmService, GatewayClient gatewayClient, RestClient restClient) : IRequestHandler<BeepskyChat.Command>
 {
 
     /// <summary>
@@ -18,14 +19,28 @@ public sealed partial class BeepskyChat(LLMService llmService, GatewayClient gat
     {
         string? response = null;
 
-        if (request.Message.Channel is TextChannel textChannel)
+        if (request.Message.Channel is not null)
         {
             response = await llmService.GetBeepskyChatResponseAsync(
-            request.Message.Author.Id,
-            request.Message.GuildId,
-            request.Message.Content.Replace($"<@{gatewayClient.Id}>", string.Empty).Trim(),
-            textChannel,
-            cancellationToken);
+                request.Message.Author.Id,
+                request.Message.GuildId,
+                request.Message.Content.Replace($"<@{gatewayClient.Id}>", string.Empty).Trim(),
+                request.Message.Channel,
+                cancellationToken);
+        }
+        // DMs have the channel as null, even though DMChannel is a TextChannel -_-
+        else
+        {
+            Channel channel = await restClient.GetChannelAsync(request.Message.ChannelId, cancellationToken: cancellationToken);
+            if (channel is DMChannel dMChannel)
+            {
+                response = await llmService.GetBeepskyChatResponseAsync(
+                    request.Message.Author.Id,
+                    request.Message.GuildId,
+                    request.Message.Content.Replace($"<@{gatewayClient.Id}>", string.Empty).Trim(),
+                    dMChannel,
+                    cancellationToken);
+            }
         }
 
         if (string.IsNullOrWhiteSpace(response))

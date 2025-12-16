@@ -3,6 +3,6 @@
     "DiscordBotToken": "",
     "DatabaseConnectionString": "",
     "DownloadCache": "",
-    "LLamaModel": ""
+    "OllamaUrl": ""
   }
 }
