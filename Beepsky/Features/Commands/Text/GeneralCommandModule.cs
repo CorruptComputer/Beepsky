@@ -63,14 +63,14 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     /// <param name="expressionStr"></param>
     /// <returns></returns>
     [Command("eval")]
-    public static async Task<string> Evaluate([CommandParameter(Remainder = true)] string expressionStr)
+    public static Task<string> Evaluate([CommandParameter(Remainder = true)] string expressionStr)
     {
         if (!Expression.TryParse(expressionStr, out Expression? expression))
         {
-            return "Invalid expression format.";
+            return Task.FromResult("Invalid expression format.");
         }
 
-        return Math.Round(expression.Root.Value, 10).ToString(CultureInfo.InvariantCulture);
+        return Task.FromResult(Math.Round(expression.Root.Value, 10).ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
