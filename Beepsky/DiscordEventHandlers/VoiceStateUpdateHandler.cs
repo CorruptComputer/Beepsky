@@ -2,7 +2,6 @@ using Beepsky.Features.Jolly;
 using Beepsky.Services;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
-using NetCord.Rest;
 
 namespace Beepsky.DiscordEventHandlers;
 

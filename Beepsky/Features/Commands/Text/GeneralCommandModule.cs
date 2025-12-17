@@ -1,10 +1,13 @@
+using System.Globalization;
 using Beepsky.Exceptions;
+using Beepsky.Features.TerribleCounting;
+using Beepsky.Models.MathExpressions;
 using NetCord.Services.Commands;
 
 namespace Beepsky.Features.Commands.Text;
 
 /// <inheritdoc />
-public sealed class GeneralCommandModule : CommandModule<CommandContext>
+public sealed class GeneralCommandModule(ISender sender) : CommandModule<CommandContext>
 {
     /// <summary>
     ///   8ball command
@@ -42,24 +45,56 @@ public sealed class GeneralCommandModule : CommandModule<CommandContext>
     }
 
     /// <summary>
+    ///   Generates an equation that equals the given number
+    /// </summary>
+    /// <param name="equals"></param>
+    /// <returns></returns>
+    [Command("eq")]
+    public async Task<string> Equation([CommandParameter(Remainder = true)] int equals)
+    {
+        Expression? expression = await sender.Send(new GenerateExpressionTree.Query(equals));
+
+        return expression?.ToString() ?? "Could not generate expression.";
+    }
+
+    /// <summary>
+    ///   Generates an equation that equals the given number
+    /// </summary>
+    /// <param name="expressionStr"></param>
+    /// <returns></returns>
+    [Command("eval")]
+    public static async Task<string> Evaluate([CommandParameter(Remainder = true)] string expressionStr)
+    {
+        if (!Expression.TryParse(expressionStr, out Expression? expression))
+        {
+            return "Invalid expression format.";
+        }
+
+        return Math.Round(expression.Root.Value, 10).ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     ///   Help command
     /// </summary>
     /// <returns></returns>
     [Command("help")]
     public static string Help()
     {
-        string helpMessage =
-@$"**Audio Commands** (server-only)
-- {BeepskyConfiguration.Prefix}q [link] - Queues a track to play from YouTube
-- {BeepskyConfiguration.Prefix}skip - Skip the currently playing track
-- {BeepskyConfiguration.Prefix}stop - Stop playback and clear the queue
-- {BeepskyConfiguration.Prefix}lq - Lists the current queue of tracks
+        string helpMessage = $"""
+            **Audio Commands** (server-only)
+            - {BeepskyConfiguration.Prefix}q [link] - Queues a track to play from YouTube
+            - {BeepskyConfiguration.Prefix}skip - Skip the currently playing track
+            - {BeepskyConfiguration.Prefix}stop - Stop playback and clear the queue
+            - {BeepskyConfiguration.Prefix}lq - Lists the current queue of tracks
+            **General Commands**
+            - {BeepskyConfiguration.Prefix}8ball [question (optional)] - Ask the magic 8-ball a question
+            - {BeepskyConfiguration.Prefix}help - Show this help message
+            - {BeepskyConfiguration.Prefix}eq [number] - Generate a random equation that equals the given number
+            - {BeepskyConfiguration.Prefix}eval [expression] - Evaluate a mathematical expression
+            - {BeepskyConfiguration.Prefix}ping - Pong!
 
-**General Commands**
-- {BeepskyConfiguration.Prefix}8ball [question (optional)] - Ask the magic 8-ball a question
-- {BeepskyConfiguration.Prefix}help - Show this help message
-- {BeepskyConfiguration.Prefix}ping - Pong!
-";
+            If you @ ping me, I might respond!
+            """;
 
         return helpMessage;
     }

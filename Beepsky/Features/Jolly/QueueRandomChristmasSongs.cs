@@ -1,9 +1,4 @@
-using Beepsky.Database.DbSets;
-using Beepsky.Database.Operations.Guild;
-using Beepsky.Database.Operations.GuildUserStatistic;
-using Beepsky.Database.Operations.User;
 using Beepsky.Services;
-using NetCord.Gateway;
 
 namespace Beepsky.Features.Jolly;
 

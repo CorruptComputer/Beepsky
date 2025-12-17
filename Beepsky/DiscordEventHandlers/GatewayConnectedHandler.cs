@@ -1,4 +1,3 @@
-using Beepsky.Features.Statistics;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 
