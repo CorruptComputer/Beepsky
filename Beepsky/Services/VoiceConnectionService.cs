@@ -51,8 +51,6 @@ public class VoiceConnectionService(GatewayClient gatewayClient, RestClient rest
             voiceConnection.OpusEncodeStream = new(voiceConnection.OutStream, PcmFormat.Short, VoiceChannels.Stereo, OpusApplication.Audio);
         }
 
-        voiceConnection.CurrentlyPlaying = track;
-
         VoiceState? botVoiceState = null;
         try
         {

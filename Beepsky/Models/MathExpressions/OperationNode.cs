@@ -1,3 +1,5 @@
+using Beepsky.Exceptions;
+
 namespace Beepsky.Models.MathExpressions;
 
 /// <summary>
@@ -30,7 +32,7 @@ public sealed class OperationNode(OperatorKind op, ExpressionNode left, Expressi
         OperatorKind.Multiply or OperatorKind.Divide => 2,
         OperatorKind.Power => 3,
         OperatorKind.Factorial or OperatorKind.AbsoluteValue => 4,
-        _ => throw new InvalidOperationException()
+        _ => throw new BeepskyException("Unknown operator kind.")
     };
 
     /// <summary>
@@ -85,6 +87,6 @@ public sealed class OperationNode(OperatorKind op, ExpressionNode left, Expressi
         OperatorKind.Subtract => "-",
         OperatorKind.Multiply => "*",
         OperatorKind.Divide => "/",
-        _ => throw new InvalidOperationException()
+        _ => throw new BeepskyException("Unknown operator kind.")
     };
 }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Beepsky.Exceptions;
 using Beepsky.Extensions;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -19,84 +20,58 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            QueuedAudioTrack? nextTrackToDownload = audioQueue.GetNextDownload();
-
-            if (nextTrackToDownload is not null)
+            try
             {
-                nextTrackToDownload.CurrentState = QueuedAudioTrack.State.Downloading;
+                QueuedAudioTrack? nextTrackToDownload = audioQueue.GetNextDownload();
 
-                Log.Information("Starting download for track: {TrackUri}", nextTrackToDownload.TrackUri);
-                switch (nextTrackToDownload.Type)
+                if (nextTrackToDownload is not null)
                 {
-                    case QueuedAudioTrack.DownloadType.YouTube:
-                        string? downloadedFilePath = await DownloadYouTubeAudio(nextTrackToDownload.TrackUri, nextTrackToDownload.CancellationTokenSource);
-                        if (downloadedFilePath is not null)
+                    nextTrackToDownload.CurrentState = QueuedAudioTrack.State.Downloading;
+
+                    try
+                    {
+                        Log.Information("Starting download for track: {TrackUri}", nextTrackToDownload.TrackUri);
+                        switch (nextTrackToDownload.Type)
                         {
-                            nextTrackToDownload.DownloadedFilePath = downloadedFilePath;
-                            string metadataPath = downloadedFilePath + ".info.json";
-                            if (File.Exists(metadataPath))
-                            {
-                                string metadataJson = await File.ReadAllTextAsync(metadataPath, nextTrackToDownload.CancellationTokenSource.Token);
-                                if (!string.IsNullOrWhiteSpace(metadataJson))
-                                {
-                                    try
-                                    {
-                                        YouTubeMetadata? metadata = JsonSerializer.Deserialize<YouTubeMetadata>(metadataJson);
-                                        if (metadata is not null)
-                                        {
-                                            nextTrackToDownload.Title = metadata.VideoTitle;
+                            case QueuedAudioTrack.DownloadType.YouTube:
+                                await DownloadYouTubeAudioAsync(nextTrackToDownload);
+                                break;
 
-                                            if (metadata.DurationInSeconds is not null)
-                                            {
-                                                nextTrackToDownload.Duration = TimeSpan.FromSeconds(metadata.DurationInSeconds.Value);
-                                            }
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Log.Error(ex, "Error parsing YouTube metadata JSON for track {TrackUri}", nextTrackToDownload.TrackUri);
-                                    }
-                                }
-                                // Parse JSON for title and duration
-                            }
+                            default:
+                                Log.Warning("Unimplemented download for track type: {Type}", nextTrackToDownload.Type);
+                                break;
                         }
-                        else
-                        {
-                            Log.Warning("Failed to download track: {TrackUri}", nextTrackToDownload.TrackUri);
-
-                            try
-                            {
-                                nextTrackToDownload.CancellationTokenSource.Cancel(); // Yeet
-                            }
-                            catch (ObjectDisposedException) { /* Ignore */ }
-                        }
-                        break;
-
-                    default:
-                        Log.Warning("Unimplemented download for track type: {Type}", nextTrackToDownload.Type);
-                        break;
+                    }
+                    // No need to catch here, the outer catch will handle that. This try is just here to have the finally below
+                    // No matter what, ensure the state is set to QueuedForPlayback at the end of this, otherwise the track can get stuck in Downloading state forever
+                    // If it fails somehow, the queue service will handle removing it
+                    finally
+                    {
+                        nextTrackToDownload.CurrentState = QueuedAudioTrack.State.QueuedForPlayback;
+                    }
                 }
 
-                nextTrackToDownload.CurrentState = QueuedAudioTrack.State.QueuedForPlayback;
+                await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
             }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error in AudioDownloadService main loop");
+            }
         }
     }
 
     /// <summary>
     ///   Downloads audio from a YouTube URI using yt-dlp
     /// </summary>
-    /// <param name="uri"></param>
-    /// <param name="linkedCts">To be used for the yt-dlp process</param>
+    /// <param name="track"></param>
     /// <returns>The file path for the downloaded audio</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private async Task<string?> DownloadYouTubeAudio(Uri uri, CancellationTokenSource linkedCts)
+    private async Task DownloadYouTubeAudioAsync(QueuedAudioTrack track)
     {
-        if (linkedCts.IsCancellationRequested)
+        if (track.CancellationTokenSource.IsCancellationRequested)
         {
-            Log.Information("Download cancelled before starting for URI {Uri}", uri);
-            return null;
+            Log.Information("Download cancelled before starting for URI {Uri}", track.TrackUri);
+            return;
         }
 
         try
@@ -108,20 +83,22 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                 Directory.CreateDirectory(outputDir);
             }
 
-            string videoId = uri.Query.Split("v=")[1].Split('&')[0];
+            string videoId = track.TrackUri.Query.Split("v=")[1].Split('&')[0];
             string? outputFilePath = Path.Join(outputDir, $"{videoId}.mp3");
 
             if (File.Exists(outputFilePath))
             {
                 Log.Information("Audio file already exists: {FilePath}", outputFilePath);
-                return outputFilePath;
+                track.DownloadedFilePath = outputFilePath;
+                await GetMetadataForYouTubeTrackAsync(track);
+                return;
             }
 
             List<string> arguments = [
                 "--output", outputFilePath,
                 "-t", "mp3",
                 "--write-info-json",
-                uri.ToString()
+                track.TrackUri.ToString()
             ];
 
             ProcessStartInfo startInfo = new("yt-dlp")
@@ -135,22 +112,26 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                 startInfo.ArgumentList.Add(arg);
             }
 
-            Log.Information("Starting yt-dlp for URI {Uri}", uri);
-            Process ytdlp = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start yt-dlp process");
+            Log.Information("Starting yt-dlp for URI {Uri}", track.TrackUri);
+            using Process ytdlp = Process.Start(startInfo)
+                ?? throw new BeepskyException("Could not start yt-dlp process");
             try
             {
-                await ytdlp.WaitForExitAsync().AwaitWithTimeout(
+                await ytdlp.WaitForExitAsync(track.CancellationTokenSource.Token).AwaitWithTimeout(
                 TimeSpan.FromMinutes(1),
                 onSuccess: async () =>
                 {
                     Log.Information("Finished downloading {Track}", outputFilePath);
-                    string ytdlpOutput = await ytdlp.StandardOutput.ReadToEndAsync();
-                    string ytdlpErrors = await ytdlp.StandardError.ReadToEndAsync();
+                    //string ytdlpOutput = await ytdlp.StandardOutput.ReadToEndAsync();
+                    //string ytdlpErrors = await ytdlp.StandardError.ReadToEndAsync();
+
+                    track.DownloadedFilePath = outputFilePath;
+                    await GetMetadataForYouTubeTrackAsync(track);
                 },
                 onTimeout: () =>
                 {
                     Log.Warning("yt-dlp timed out {Track}", outputFilePath);
-                    ytdlp.Kill();
+                    ytdlp.Kill(entireProcessTree: true);
                     outputFilePath = null;
                     return Task.CompletedTask;
                 },
@@ -159,21 +140,51 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                     ytdlp.Dispose();
                     return Task.CompletedTask;
                 },
-                tasksLinkedCts: linkedCts);
+                tasksLinkedCts: track.CancellationTokenSource);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error downloading audio {Uri}", uri);
+                Log.Error(ex, "Error downloading audio {Uri}", track.TrackUri);
                 ytdlp.Kill();
                 ytdlp.Dispose();
             }
 
-            return outputFilePath;
+            return;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error downloading audio {Uri}", uri);
-            return null;
+            Log.Error(ex, "Error downloading audio {Uri}", track.TrackUri);
+            return;
+        }
+    }
+
+    private static async Task GetMetadataForYouTubeTrackAsync(QueuedAudioTrack track)
+    {
+        string metadataPath = track.DownloadedFilePath + ".info.json";
+        if (File.Exists(metadataPath))
+        {
+            string metadataJson = await File.ReadAllTextAsync(metadataPath, track.CancellationTokenSource.Token);
+            if (!string.IsNullOrWhiteSpace(metadataJson))
+            {
+                // This part can fail without breaking the download, so fine to mostly ignore this error
+                try
+                {
+                    YouTubeMetadata? metadata = JsonSerializer.Deserialize<YouTubeMetadata>(metadataJson);
+                    if (metadata is not null)
+                    {
+                        track.Title = metadata.VideoTitle;
+
+                        if (metadata.DurationInSeconds is not null)
+                        {
+                            track.Duration = TimeSpan.FromSeconds(metadata.DurationInSeconds.Value);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error parsing YouTube metadata JSON for track {TrackUri}", track.TrackUri);
+                }
+            }
         }
     }
 }

@@ -51,6 +51,11 @@ public sealed record QueuedAudioTrack
     public string? DownloadedFilePath { get; set; }
 
     /// <summary>
+    ///   The playback task for this track, if currently playing
+    /// </summary>
+    public Task? PlaybackTask { get; set; }
+
+    /// <summary>
     ///   The cancellation token source for this track
     /// </summary>
     public required CancellationTokenSource CancellationTokenSource { get; init; }

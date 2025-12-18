@@ -138,10 +138,19 @@ public class AudioQueueService
     /// <returns></returns>
     public QueuedAudioTrack? GetNextPlayback(ulong guildId)
     {
-        IEnumerable<KeyValuePair<Guid, QueuedAudioTrack>> guildTracksWaitingForPlayback = TrackQueue.Where(track => track.Value.GuildId == guildId && track.Value.CurrentState == QueuedAudioTrack.State.QueuedForPlayback);
-        KeyValuePair<Guid, QueuedAudioTrack>? nextTrack = guildTracksWaitingForPlayback.OrderBy(track => track.Value.QueuedAt).FirstOrDefault();
+        List<QueuedAudioTrack> guildTracksWaitingForPlayback = [.. TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState == QueuedAudioTrack.State.QueuedForPlayback)];
+        List<QueuedAudioTrack> cancelledTracks = [.. guildTracksWaitingForPlayback.Where(track => track.CancellationTokenSource.IsCancellationRequested)];
+        if (cancelledTracks.Count > 0)
+        {
+            Log.Information("Removing {Count} cancelled tracks from playback queue for guild {GuildId}", cancelledTracks.Count, guildId);
+            foreach (QueuedAudioTrack cancelledTrack in cancelledTracks)
+            {
+                RemoveTrack(cancelledTrack);
+                guildTracksWaitingForPlayback.Remove(cancelledTrack);
+            }
+        }
 
-        return nextTrack?.Value;
+        return guildTracksWaitingForPlayback.OrderBy(track => track.QueuedAt).FirstOrDefault();
     }
 
     /// <summary>
@@ -152,14 +161,14 @@ public class AudioQueueService
     /// <exception cref="BeepskyException"></exception>
     public QueuedAudioTrack? GetCurrentlyPlayingTrackForGuild(ulong guildId)
     {
-        IEnumerable<KeyValuePair<Guid, QueuedAudioTrack>> guildTracksPlaying = TrackQueue.Where(track => track.Value.GuildId == guildId && track.Value.CurrentState == QueuedAudioTrack.State.Playing);
+        IEnumerable<QueuedAudioTrack> guildTracksPlaying = TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState == QueuedAudioTrack.State.Playing);
 
         if (guildTracksPlaying.Count() > 1)
         {
             throw new BeepskyException("Invalid state, multiple tracks playing for guild " + guildId);
         }
 
-        return guildTracksPlaying.Select(tp => tp.Value).FirstOrDefault();
+        return guildTracksPlaying.FirstOrDefault();
     }
 
     /// <summary>
@@ -168,10 +177,19 @@ public class AudioQueueService
     /// <returns></returns>
     public QueuedAudioTrack? GetNextDownload()
     {
-        IEnumerable<KeyValuePair<Guid, QueuedAudioTrack>> guildTracksWaitingForDownload = TrackQueue.Where(track => track.Value.CurrentState == QueuedAudioTrack.State.QueuedForDownload);
-        KeyValuePair<Guid, QueuedAudioTrack>? nextTrack = guildTracksWaitingForDownload.OrderBy(track => track.Value.QueuedAt).FirstOrDefault();
+        List<QueuedAudioTrack> tracksWaitingForDownload = [.. TrackQueue.Values.Where(track => track.CurrentState == QueuedAudioTrack.State.QueuedForDownload)];
+        List<QueuedAudioTrack> cancelledTracks = [.. tracksWaitingForDownload.Where(track => track.CancellationTokenSource.IsCancellationRequested)];
+        if (cancelledTracks.Count > 0)
+        {
+            Log.Information("Removing {Count} cancelled tracks from download queue", cancelledTracks.Count);
+            foreach (QueuedAudioTrack cancelledTrack in cancelledTracks)
+            {
+                RemoveTrack(cancelledTrack);
+                tracksWaitingForDownload.Remove(cancelledTrack);
+            }
+        }
 
-        return nextTrack?.Value;
+        return tracksWaitingForDownload.OrderBy(track => track.QueuedAt).FirstOrDefault();
     }
 
     /// <summary>
@@ -194,5 +212,12 @@ public class AudioQueueService
         {
             TrackQueue.TryRemove(trackToRemove.Value.Key, out _);
         }
+
+        try
+        {
+            // Might as well go ahead and cancel it too
+            track.CancellationTokenSource.Cancel();
+        }
+        catch (ObjectDisposedException) { /* Ignore */ }
     }
 }

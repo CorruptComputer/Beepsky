@@ -88,7 +88,7 @@ public static class TaskExtensions
     /// <param name="onSuccess"></param>
     /// <param name="onTimeout"></param>
     /// <param name="onComplete"></param>
-    /// <param name="tasksLinkedCts"></param>
+    /// <param name="tasksLinkedCts">If provided, this will be cancelled on timeout.</param>
     /// <returns></returns>
     /// <exception cref="OperationCanceledException"></exception>
     public static async Task AwaitWithTimeout(this Task task, TimeSpan timeout, Func<Task>? onSuccess = null, Func<Task>? onTimeout = null, Func<Task>? onComplete = null, CancellationTokenSource? tasksLinkedCts = null)

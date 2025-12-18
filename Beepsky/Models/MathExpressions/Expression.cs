@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Beepsky.Exceptions;
 
 namespace Beepsky.Models.MathExpressions;
 
@@ -30,14 +31,14 @@ public sealed class Expression(ExpressionNode root)
     /// </summary>
     /// <param name="input">The expression string to parse.</param>
     /// <returns>The parsed Expression.</returns>
-    /// <exception cref="FormatException">Thrown when the expression is invalid.</exception>
+    /// <exception cref="BeepskyException">Thrown when the expression is invalid.</exception>
     public static Expression Parse(string input)
     {
         var parser = new ExpressionParser(input);
         ExpressionNode node = parser.ParseExpression();
         if (!parser.IsAtEnd)
         {
-            throw new FormatException($"Unexpected character at position {parser.Position}: '{parser.CurrentChar}'");
+            throw new BeepskyException($"Unexpected character at position {parser.Position}: '{parser.CurrentChar}'");
         }
         return new Expression(node);
     }
@@ -207,7 +208,7 @@ public sealed class Expression(ExpressionNode root)
                 SkipWhitespace();
                 if (!TryConsume(')'))
                 {
-                    throw new FormatException($"Expected ')' at position {_position}");
+                    throw new BeepskyException($"Expected ')' at position {_position}");
                 }
                 return node;
             }
@@ -219,7 +220,7 @@ public sealed class Expression(ExpressionNode root)
                 SkipWhitespace();
                 if (!TryConsume('|'))
                 {
-                    throw new FormatException($"Expected closing '|' at position {_position}");
+                    throw new BeepskyException($"Expected closing '|' at position {_position}");
                 }
                 double value = Math.Abs(inner.Value);
                 return new OperationNode(OperatorKind.AbsoluteValue, inner, null, value);
@@ -253,7 +254,7 @@ public sealed class Expression(ExpressionNode root)
 
             if (start == _position)
             {
-                throw new FormatException($"Expected number at position {_position}, got '{CurrentChar}'");
+                throw new BeepskyException($"Expected number at position {_position}, got '{CurrentChar}'");
             }
 
             ReadOnlySpan<char> numberSpan = _input[start.._position];
@@ -284,7 +285,7 @@ public sealed class Expression(ExpressionNode root)
         {
             if (n < 0 || n != Math.Truncate(n))
             {
-                throw new FormatException("Factorial is only defined for non-negative integers");
+                throw new BeepskyException("Factorial is only defined for non-negative integers");
             }
             double result = 1;
             for (int i = 2; i <= (int)n; i++)

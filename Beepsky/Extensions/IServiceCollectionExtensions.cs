@@ -24,11 +24,7 @@ public static class IServiceCollectionExtensions
         // Specifically not reading this from appsettings, as ideally I'd like to get rid of them
         // since they don't really fit the 'linux' style of application configuration.
         services.AddSerilog(configure =>
-#if DEBUG
-            configure.MinimumLevel.Debug()
-#else
             configure.MinimumLevel.Information()
-#endif
                 .Enrich.FromLogContext()
                 .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
         );

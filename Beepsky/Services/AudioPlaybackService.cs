@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Beepsky.Exceptions;
 using Beepsky.Extensions;
@@ -16,29 +15,33 @@ namespace Beepsky.Services;
 /// <param name="voiceConnectionService"></param>
 public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionService voiceConnectionService) : BackgroundService
 {
-    // <GuildId, Task>
-    private readonly ConcurrentDictionary<ulong, Task> PlaybackTasks = [];
-
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Need to skip whats currently playing
-            IEnumerable<ulong> guildsToSkip = audioQueue.GetGuildsWithSkips();
-            foreach (ulong guildId in guildsToSkip)
+            try
             {
-                SkipCurrentlyPlayingTrack(guildId);
-            }
+                // Need to skip whats currently playing
+                IEnumerable<ulong> guildsToSkip = audioQueue.GetGuildsWithSkips();
+                foreach (ulong guildId in guildsToSkip)
+                {
+                    SkipCurrentlyPlayingTrack(guildId);
+                }
 
-            // Play next track
-            IEnumerable<ulong> guildsWithQueues = audioQueue.GetGuildsWithPlaybackQueues();
-            foreach (ulong guildId in guildsWithQueues)
+                // Play next track
+                IEnumerable<ulong> guildsWithQueues = audioQueue.GetGuildsWithPlaybackQueues();
+                foreach (ulong guildId in guildsWithQueues)
+                {
+                    await ProcessQueueForGuildAsync(guildId);
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+            }
+            catch (Exception ex)
             {
-                await ProcessQueueForGuildAsync(guildId);
+                Log.Error(ex, "Error in AudioPlaybackService main loop");
             }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
         }
     }
 
@@ -46,12 +49,12 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
     {
         Log.Information("Skip requested for guild {GuildId}, cancelling playback", guildId);
 
-        VoiceConnection? vc = voiceConnectionService.GetVoiceConnectionForGuild(guildId);
-        if (vc is not null)
+        QueuedAudioTrack? track = audioQueue.GetCurrentlyPlayingTrackForGuild(guildId);
+        if (track is not null)
         {
             try
             {
-                vc.CurrentlyPlaying?.CancellationTokenSource.Cancel();
+                track.CancellationTokenSource.Cancel();
             }
             catch (ObjectDisposedException) { /* Ignore */ }
         }
@@ -78,28 +81,24 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 Log.Information("Currently playing track {Track} in guild {GuildId} has been cancelled, removing from queue", currentlyPlaying.DownloadedFilePath, guildId);
                 audioQueue.RemoveTrack(currentlyPlaying);
             }
-
-            // Edge case: currently playing but no task
-            if (!PlaybackTasks.ContainsKey(guildId))
-            {
-                Log.Warning("No playback task found for currently playing track {Track} in guild {GuildId}, cancelling playback", currentlyPlaying.DownloadedFilePath, guildId);
-                currentlyPlaying.CancellationTokenSource.Cancel();
-                audioQueue.RemoveTrack(currentlyPlaying);
-            }
         }
 
-        if (PlaybackTasks.ContainsKey(guildId))
+        if (currentlyPlaying is not null)
         {
-            // Done playing
-            if (PlaybackTasks[guildId].IsCompleted || PlaybackTasks[guildId].IsCanceled)
+            if (currentlyPlaying.PlaybackTask is null)
             {
-                PlaybackTasks.Remove(guildId, out _);
-                QueuedAudioTrack? completedTrack = audioQueue.GetCurrentlyPlayingTrackForGuild(guildId);
-                if (completedTrack is not null)
-                {
-                    Log.Information("Completed playback for track {Track} in guild {GuildId}", completedTrack.DownloadedFilePath, guildId);
-                    audioQueue.RemoveTrack(completedTrack);
-                }
+                Log.Warning("Currently playing track {Track} in guild {GuildId} has null PlaybackTask, removing from queue", currentlyPlaying.DownloadedFilePath, guildId);
+                audioQueue.RemoveTrack(currentlyPlaying);
+                return;
+            }
+
+            // Done playing
+            if (currentlyPlaying.PlaybackTask.IsCompleted
+                || currentlyPlaying.PlaybackTask.IsCanceled
+                || currentlyPlaying.PlaybackTask.IsFaulted
+                || currentlyPlaying.CancellationTokenSource.IsCancellationRequested)
+            {
+                audioQueue.RemoveTrack(currentlyPlaying);
 
                 // Nothing next
                 if (nextTrack is null)
@@ -109,7 +108,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                     return;
                 }
             }
-            // Still playing
+            // Still playing, do nothing and return
             else
             {
                 return;
@@ -117,11 +116,12 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
         }
 
         // Something next
-        if (nextTrack is not null && nextTrack.DownloadedFilePath is not null)
+        if (nextTrack is not null
+            && nextTrack.DownloadedFilePath is not null)
         {
             Log.Information("Popped next track for guild {GuildId}: {Track}", guildId, nextTrack.DownloadedFilePath);
 
-            PlaybackTasks[guildId] = Task.Run(async () =>
+            nextTrack.PlaybackTask = Task.Run(async () =>
             {
                 nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
                 await PlayAudioFile(nextTrack);
@@ -179,7 +179,8 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 startInfo.ArgumentList.Add(arg);
             }
 
-            using Process ffmpeg = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start FFmpeg process");
+            using Process ffmpeg = Process.Start(startInfo)
+                ?? throw new BeepskyException("Could not start FFmpeg process");
             try
             {
                 await ffmpeg.StandardOutput.BaseStream.CopyToAsync(voiceConnection.OpusEncodeStream, track.CancellationTokenSource.Token).AwaitWithTimeout(
@@ -193,13 +194,12 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 onTimeout: () =>
                 {
                     Log.Warning("FFmpeg process timed out for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-                    ffmpeg.Kill();
+                    ffmpeg.Kill(entireProcessTree: true);
                     return Task.CompletedTask;
                 },
                 onComplete: () =>
                 {
                     ffmpeg.Dispose();
-                    voiceConnection.CurrentlyPlaying = null;
                     return Task.CompletedTask;
                 },
                 tasksLinkedCts: track.CancellationTokenSource);

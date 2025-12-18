@@ -22,9 +22,4 @@ public sealed record VoiceConnection
     ///   The Opus encode stream for this connection
     /// </summary>
     public OpusEncodeStream? OpusEncodeStream { get; set; }
-
-    /// <summary>
-    ///   The track currently being played in this voice connection, null if none
-    /// </summary>
-    public QueuedAudioTrack? CurrentlyPlaying { get; set; }
 }
