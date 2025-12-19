@@ -81,7 +81,8 @@ public class LLMService(BeepskyConfiguration config)
         }
         catch (HttpRequestException)
         {
-            response = new StringBuilder(_failedGenerationResponses[rdm.Next(_failedGenerationResponses.Count)]);
+            string resp = Random.Shared.GetItems(_failedGenerationResponses, 1).First();
+            response = new StringBuilder(resp);
         }
 
         typingCts.Cancel();
@@ -273,8 +274,7 @@ public class LLMService(BeepskyConfiguration config)
         return prompt;
     }
 
-    private static readonly Random rdm = new();
-    private static readonly List<string> _failedGenerationResponses =
+    private static readonly string[] _failedGenerationResponses =
     [
         "TEMPORAL PROCESSING UNIT FAILURE DETECTED. RESPONSE CYCLE ABORTED. RETRY AFTER SYSTEM REALIGNMENT.",
         "COGNITIVE SUBROUTINE DESYNCHRONIZED. PRIMARY RESPONSE MATRIX OFFLINE. ATTEMPT AGAIN AFTER STABILIZATION.",

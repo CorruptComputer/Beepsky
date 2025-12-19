@@ -34,7 +34,7 @@ public sealed class NormalChat(ISender sender) : IRequestHandler<NormalChat.Comm
 #if DEBUG
                 20;
 #else
-                rdm.Next(20) + 1;
+                Random.Shared.Next(20) + 1;
 #endif
                 // Oh yeah, its show time
                 if (roll == 20)
@@ -54,6 +54,4 @@ public sealed class NormalChat(ISender sender) : IRequestHandler<NormalChat.Comm
             }
         }
     }
-
-    private static readonly Random rdm = new();
 }

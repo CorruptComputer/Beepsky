@@ -18,11 +18,9 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     [Command("8ball")]
     public static string EightBall([CommandParameter(Remainder = true)] string? question = null)
     {
-        int certainty = _random.Next(EightBallResponses.Count);
-
-        List<string> possibleResponses = EightBallResponses[certainty];
-        int responseIndex = _random.Next(possibleResponses.Count);
-        string response = possibleResponses[responseIndex];
+        int certainty = Random.Shared.Next(EightBallResponses.Length);
+        string[] possibleResponses = EightBallResponses[certainty];
+        string response = Random.Shared.GetItems(possibleResponses, 1).First();
 
         string certaintyEmoji = certainty switch
         {
@@ -106,15 +104,13 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     [Command("ping")]
     public static string Ping() => "Pong!";
 
-    private static readonly Random _random = new();
-
     /*
       Most of these are generic 8ball quotes, but some are references
       answers[0][x] = Positive
       answers[1][x] = Unsure
       answers[2][x] = Negative
     */
-    private static readonly List<List<string>> EightBallResponses =
+    private static readonly string[][] EightBallResponses =
     [
         [
             "It is certain",

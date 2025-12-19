@@ -1,12 +1,11 @@
 using Beepsky.Services;
 
-namespace Beepsky.Features.Jolly;
+namespace Beepsky.Features.Audio;
 
 /// <inheritdoc />
 public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueService) : IRequestHandler<QueueRandomChristmasSongs.Command, CommandResponse>
 {
-    private static readonly Random rdm = new();
-    private static readonly List<string> christmasSongs =
+    private static readonly string[] christmasSongs =
     [
         "https://www.youtube.com/watch?v=YfF10ow4YEo", // Kelly Clarkson - Underneath the Tree
         "https://www.youtube.com/watch?v=KhqNTjbQ71A", // Wham! - Last Christmas
@@ -51,7 +50,7 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
     public Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
     {
         // Get the songs in a random order
-        IEnumerable<string> shuffledSongs = christmasSongs.OrderBy(_ => rdm.Next()).Take(5);
+        IEnumerable<string> shuffledSongs = Random.Shared.GetItems(christmasSongs, 5);
 
         foreach (string song in shuffledSongs)
         {

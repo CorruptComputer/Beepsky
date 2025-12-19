@@ -1,4 +1,4 @@
-using Beepsky.Features.Jolly;
+using Beepsky.Features.Audio;
 using Beepsky.Services;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
@@ -56,7 +56,8 @@ public class VoiceStateUpdateHandler(GatewayClient gatewayClient, AudioQueueServ
         // And the month is December
         if (botVoiceState is null
             && changedChannelVoiceStates.Count == 0 // Count not updated in cache yet
-            && DateTime.UtcNow.Month == 12)
+            && DateTime.UtcNow.Month == 12
+            && DateTime.UtcNow.Day <= 25)
         {
             await sender.Send(new QueueRandomChristmasSongs.Command(arg.GuildId, arg.ChannelId.Value));
         }

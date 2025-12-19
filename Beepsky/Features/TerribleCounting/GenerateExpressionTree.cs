@@ -63,8 +63,6 @@ public sealed class GenerateExpressionTree : IRequestHandler<GenerateExpressionT
 
     private sealed record InverseCandidate(OperatorKind Operator, int LeftValue, int? RightValue);
 
-    private static readonly Random rdm = new();
-
     private ExpressionNode GenerateNode(int target, GenerationContext ctx)
     {
         // Base case: no operations remaining, emit literal
@@ -153,7 +151,7 @@ public sealed class GenerateExpressionTree : IRequestHandler<GenerateExpressionT
         }
 
         // Addition / subtraction
-        int offset = rdm.Next(1, 10);
+        int offset = Random.Shared.Next(1, 10);
         list.Add(new InverseCandidate(
             OperatorKind.Add,
             target - offset,
@@ -239,7 +237,7 @@ public sealed class GenerateExpressionTree : IRequestHandler<GenerateExpressionT
     {
         for (int i = list.Count - 1; i > 0; i--)
         {
-            int j = rdm.Next(i + 1);
+            int j = Random.Shared.Next(i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
     }
@@ -260,7 +258,7 @@ public sealed class GenerateExpressionTree : IRequestHandler<GenerateExpressionT
         while (weighted.Count > 0)
         {
             double totalWeight = weighted.Sum(w => w.Weight);
-            double pick = rdm.NextDouble() * totalWeight;
+            double pick = Random.Shared.NextDouble() * totalWeight;
 
             double cumulative = 0;
             int selectedIndex = 0;

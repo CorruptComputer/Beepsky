@@ -20,10 +20,31 @@ public sealed record QueuedAudioTrack
     /// </summary>
     public DateTimeOffset QueuedAt { get; } = DateTimeOffset.UtcNow;
 
+    // This is modified by multiple threads, so need to lock access to it
+    private readonly Lock _stateLock = new();
+    private State _currentState;
+
     /// <summary>
     ///   The current state of this queued audio track
     /// </summary>
-    public required State CurrentState { get; set; }
+    public required State CurrentState
+    {
+        get
+        {
+            lock (_stateLock)
+            {
+                return _currentState;
+            }
+        }
+
+        set
+        {
+            lock (_stateLock)
+            {
+                _currentState = value;
+            }
+        }
+    }
 
     /// <summary>
     ///   The type of download for this track

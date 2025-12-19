@@ -89,7 +89,7 @@ public class AudioQueueService
     public bool AddStopForGuild(ulong guildId)
     {
         // Clear the current queue for the guild
-        IEnumerable<QueuedAudioTrack> tracks = TrackQueue.Values.Where(track => track.GuildId == guildId);
+        List<QueuedAudioTrack> tracks = [.. TrackQueue.Values.Where(track => track.GuildId == guildId)];
         foreach (QueuedAudioTrack track in tracks)
         {
             try

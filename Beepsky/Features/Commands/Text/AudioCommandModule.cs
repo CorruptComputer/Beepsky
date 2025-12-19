@@ -1,5 +1,5 @@
 using System.Text;
-using Beepsky.Features.Jolly;
+using Beepsky.Features.Audio;
 using Beepsky.Services;
 using NetCord.Gateway;
 using NetCord.Rest;
@@ -174,8 +174,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     }
 
     // These add some nice flavor, but felt a little too much to me
-    //private static readonly Random rdm = new();
-    //private static readonly List<string> positiveResponses =
+    //private static readonly string[] positiveResponses =
     //[
     //    "🫡 REQUEST RECEIVED. QUEUEING UNDER PROTOCOL Q-17.",
     //    "🫡 ORDER LOGGED. PRIORITIZATION SUBROUTINES ENGAGED.",

@@ -26,7 +26,7 @@ public sealed class TellSkeletonHeSmells(LLMService llmService) : IRequestHandle
         if (string.IsNullOrWhiteSpace(response))
         {
             // If it fails, just give a pre-made response from the list
-            response = possibleResponses[rdm.Next(possibleResponses.Count)];
+            response = Random.Shared.GetItems(possibleResponses, 1).First();
         }
 
         const string warhammerChannelMention = "<#819648286209343488>";
@@ -37,9 +37,7 @@ public sealed class TellSkeletonHeSmells(LLMService llmService) : IRequestHandle
         return CommandResponse.Pass();
     }
 
-    private static readonly Random rdm = new();
-
-    private readonly List<string> possibleResponses =
+    private readonly string[] possibleResponses =
     [
         "CRIMINAL ENTITY DETECTED. WARHAMMER-CLASS ACTIVITY OUTSIDE AUTHORIZED ZONE. RETURN TO {{CHANNEL}} OR BE CHARGED WITH CODE 47-C: LORE DUMPING WITHOUT PERMIT.",
         "ILLEGAL TABLETOP MONOLOGUE IDENTIFIED. YOU ARE OUTSIDE YOUR DESIGNATED CONTAINMENT AREA. PROCEED TO {{CHANNEL}} IMMEDIATELY. VIOLATION: SECTION 22-A: MINIATURE-INDUCED PUBLIC NUISANCE.",
