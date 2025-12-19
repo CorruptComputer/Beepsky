@@ -1,3 +1,4 @@
+using Beepsky.Extensions;
 using Beepsky.Services;
 
 namespace Beepsky.Features.Audio;
@@ -49,8 +50,8 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
     /// <inheritdoc />
     public Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
     {
-        // Get the songs in a random order
-        IEnumerable<string> shuffledSongs = Random.Shared.GetItems(christmasSongs, 5);
+        // Get 5 random songs
+        IEnumerable<string> shuffledSongs = Random.Shared.GetUniqueItems(christmasSongs, 5);
 
         foreach (string song in shuffledSongs)
         {

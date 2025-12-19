@@ -33,14 +33,8 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
 
         ulong voiceChannelId = voiceState.ChannelId.GetValueOrDefault();
 
-        bool added;
-
-        if (track.Equals("christmas", StringComparison.OrdinalIgnoreCase))
-        {
-            CommandResponse resp = await sender.Send(new QueueRandomChristmasSongs.Command(Context.Guild.Id, voiceChannelId));
-            added = resp.Success;
-        }
-        else
+        bool added = await TryQuickQueueTracksAsync(track, Context.Guild.Id, voiceChannelId);
+        if (!added)
         {
             added = audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
         }
@@ -48,6 +42,25 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
         return added
             ? "🫡"
             : "Failed to add track to queue. Ensure the link is valid.";
+    }
+
+    private async Task<bool> TryQuickQueueTracksAsync(string track, ulong guildId, ulong voiceChannelId)
+    {
+        IRequest<CommandResponse>? quickSelect = track.ToLowerInvariant() switch
+        {
+            "anuc" => new QueueRandomAnucSongs.Command(guildId, voiceChannelId),
+            "christmas" => new QueueRandomChristmasSongs.Command(guildId, voiceChannelId),
+            _ => null,
+        };
+
+        if (quickSelect is null)
+        {
+            return false;
+        }
+
+        await sender.Send(quickSelect);
+
+        return true;
     }
 
     /// <summary>
