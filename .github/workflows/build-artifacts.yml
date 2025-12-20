@@ -30,4 +30,6 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: 'build.zip'
-          path: './publish/*.deb,./publish/*.rpm'
+          path: |
+            ./publish/*.deb
+            ./publish/*.rpm
