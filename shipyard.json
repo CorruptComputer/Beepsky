@@ -23,7 +23,9 @@
         "ffmpeg-free"
       ],
       "installSystemdService": true,
-      "systemdServiceName": "beepsky.service"
+      "systemdServiceName": "beepsky.service",
+      "postInstallScript": "systemctl daemon-reload && systemctl enable --now beepsky.service || true",
+      "preUninstallScript": "systemctl disable --now beepsky.service || true"
     }
   ]
 }
