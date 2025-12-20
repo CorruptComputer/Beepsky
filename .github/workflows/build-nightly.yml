@@ -44,10 +44,7 @@ jobs:
 
       - name: Build Packages
         run: |
-          cd Beepsky
-          dotnet deb --configuration Release --version-suffix nightly --output ../publish/
-          dotnet rpm --configuration Release --version-suffix nightly --output ../publish/
-          cd ..
+          shipyard --config ./shipyard.json --output ./publish
 
       - name: Delete previous release
         env:
@@ -64,4 +61,4 @@ jobs:
           tag: 'nightly'
           makeLatest: true
           prerelease: true
-          artifacts: './publish/Beepsky.*.linux-x64.deb,./publish/Beepsky.*.linux-x64.rpm'
+          artifacts: './publish/*.deb,./publish/*.rpm'

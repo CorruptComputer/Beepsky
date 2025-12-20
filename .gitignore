@@ -10,3 +10,4 @@ coverage.xml
 TestResults/
 /publish/
 codeql-pack.lock.yml
+/rpmbuild/

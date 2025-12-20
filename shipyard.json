@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/CorruptComputer/Shipyard/refs/heads/develop/shipyard.schema.json",
+  "projectFile": "./Beepsky/Beepsky.csproj",
+  "framework": "net10.0",
+  "runtimes": [
+    "linux-x64"
+  ],
+  "version": "0.0.1",
+  "author": "Nickolas Gupton",
+  "license": "MIT",
+  "repositoryUrl": "https://github.com/CorruptComputer/Beepsky",
+  "formatConfigs": [
+    {
+      "format": "rpm",
+      "packageName": "Beepsky",
+      "release": 1,
+      "provides": [],
+      "dependsOn": [
+        "dotnet-runtime-10.0",
+        "libsodium",
+        "libopusenc",
+        "yt-dlp",
+        "ffmpeg-free"
+      ],
+      "installSystemdService": true,
+      "systemdServiceName": "beepsky.service"
+    }
+  ]
+}
