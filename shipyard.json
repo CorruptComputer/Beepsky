@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/CorruptComputer/Shipyard/refs/heads/release/shipyard.schema.json",
+  "executable": "Beepsky",
   "version": "0.0.1",
   "author": "Nickolas Gupton",
   "license": "MIT",
