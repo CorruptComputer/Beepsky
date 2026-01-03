@@ -1,15 +1,19 @@
 {
-  "$schema": "https://raw.githubusercontent.com/CorruptComputer/Shipyard/refs/heads/develop/shipyard.schema.json",
-  "projectFile": "./Beepsky/Beepsky.csproj",
-  "framework": "net10.0",
-  "runtimes": [
-    "linux-x64"
-  ],
+  "$schema": "https://raw.githubusercontent.com/CorruptComputer/Shipyard/refs/heads/release/shipyard.schema.json",
   "version": "0.0.1",
   "author": "Nickolas Gupton",
   "license": "MIT",
   "repositoryUrl": "https://github.com/CorruptComputer/Beepsky",
-  "formatConfigs": [
+  "dotnet": {
+    "projectFile": "./Beepsky/Beepsky.csproj",
+    "framework": "net10.0",
+    "configuration": "Release",
+    "runtimes": [
+      "linux-x64"
+    ],
+    "publish": []
+  },
+  "formats": [
     {
       "format": "rpm",
       "packageName": "Beepsky",
