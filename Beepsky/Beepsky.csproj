@@ -35,11 +35,11 @@
     <PackageReference Include="Autofac" Version="9.0.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="libsodium" Version="1.0.21" />
-    <PackageReference Include="OllamaSharp" Version="5.4.13" />
-    <PackageReference Include="NetCord" Version="1.0.0-alpha.458" />
-    <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.458" />
-    <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.458" />
-    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.458" />
+    <PackageReference Include="OllamaSharp" Version="5.4.16" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.459" />
+    <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.459" />
+    <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.459" />
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.459" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
       <PrivateAssets>all</PrivateAssets>
