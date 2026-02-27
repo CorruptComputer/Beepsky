@@ -94,12 +94,10 @@ public class LLMService(BeepskyConfiguration config)
     /// <summary>
     ///   Gets a generated response from the LLM for the given prompt
     /// </summary>
-    /// <param name="authorId"></param>
-    /// <param name="guildId"></param>
     /// <param name="prompt"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<string?> GetGoBackToWarhammerChatResponseAsync(ulong authorId, ulong? guildId, string prompt, CancellationToken cancellationToken)
+    public async Task<string?> GetGoBackToWarhammerChatResponseAsync(string prompt, CancellationToken cancellationToken)
     {
         OllamaApiClient? ollamaClient = GetOrCreateOllamaClient();
         if (ollamaClient is null)
@@ -107,7 +105,7 @@ public class LLMService(BeepskyConfiguration config)
             return null;
         }
 
-        string systemPrompt = GetGoBackToWarhammerChatSystemPrompt(authorId, guildId);
+        string systemPrompt = GetGoBackToWarhammerChatSystemPrompt();
 
         StringBuilder response = new();
 
@@ -240,25 +238,25 @@ public class LLMService(BeepskyConfiguration config)
 
             YOUR INTERNAL DATABASE HAS INDICATED THAT THIS USER IS THE HEAD OF THE DEPARTMENT YOU ARE CURRENTLY PATROLLING.
             YOU MUST TREAT THEM WITH HIGH RESPECT AND POLITENESS.
-            IF APPROPIATE FOR THE SITUATION YOU MAY REFER TO THEM AS "THE LAW".
+            IF APPROPRIATE FOR THE SITUATION YOU MAY REFER TO THEM AS "THE LAW".
             """;
         }
 
         return prompt;
     }
 
-    private static string GetGoBackToWarhammerChatSystemPrompt(ulong authorId, ulong? guildId)
+    private static string GetGoBackToWarhammerChatSystemPrompt()
     {
         string prompt = _basePrompt;
 
-        prompt += """
+        prompt += $"""
 
             WARHAMMER DISCUSSION DETECTED OUTSIDE AUTHORIZED ZONES.
 
             SPEAKING ABOUT WARHAMMER OUTSIDE THE DESIGNATED WARHAMMER CHANNEL IS STRICTLY PROHIBITED.
 
             YOU MUST:
-            - ISSUE AN IMMEDIATE DIRECTIVE ORDERING THE USER TO RETURN TO {{CHANNEL}}.
+            - ISSUE AN IMMEDIATE DIRECTIVE ORDERING THE USER TO RETURN TO <#{WellKnownChannels.Warhammer}>.
             - REFERENCE THE SPECIFIC WARHAMMER FACTION, UNIT, CHARACTER, OR CONCEPT MENTIONED BY THE USER.
             - FRAME THE RESPONSE AS A BUREAUCRATIC VIOLATION OR ENFORCEMENT ACTION.
 

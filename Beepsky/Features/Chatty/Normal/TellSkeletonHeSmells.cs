@@ -17,11 +17,7 @@ public sealed class TellSkeletonHeSmells(LLMService llmService) : IRequestHandle
     public async Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
     {
         Log.Information("Telling Skeleton to go back to the warhammer channel...");
-        string? response = await llmService.GetGoBackToWarhammerChatResponseAsync(
-                                    request.Message.Author.Id,
-                                    request.Message.GuildId,
-                                    request.Message.Content,
-                                    cancellationToken);
+        string? response = await llmService.GetGoBackToWarhammerChatResponseAsync(request.Message.Content, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(response))
         {

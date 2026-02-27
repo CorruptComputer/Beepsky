@@ -61,8 +61,8 @@ public sealed class OperationNode(OperatorKind op, ExpressionNode left, Expressi
     {
         // Left operand needs parens if lower precedence,
         // OR if same precedence and operator is right-associative (power)
-        var needsParens = node.Precedence < Precedence
-            || (node.Precedence == Precedence && Operator == OperatorKind.Power);
+        bool needsParens = node.Precedence < Precedence
+                           || (node.Precedence == Precedence && Operator == OperatorKind.Power);
 
         return needsParens
             ? $"({node.ToExpressionString()})"
@@ -73,8 +73,8 @@ public sealed class OperationNode(OperatorKind op, ExpressionNode left, Expressi
     {
         // Right operand needs parens if lower precedence,
         // OR if same precedence and operator is left-associative & non-commutative (subtract/divide)
-        var needsParens = node.Precedence < Precedence
-            || (node.Precedence == Precedence && Operator is OperatorKind.Subtract or OperatorKind.Divide);
+        bool needsParens = node.Precedence < Precedence
+                           || (node.Precedence == Precedence && Operator is OperatorKind.Subtract or OperatorKind.Divide);
 
         return needsParens
             ? $"({node.ToExpressionString()})"

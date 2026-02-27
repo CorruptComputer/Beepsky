@@ -154,9 +154,9 @@ public static class TaskExtensions
 
     private static async Task WaitTillCancelled(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        if (!cancellationToken.IsCancellationRequested)
         {
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(Timeout.Infinite, cancellationToken);
         }
     }
 }

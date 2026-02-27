@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Collections.Specialized;
+using System.Web;
 using Beepsky.Exceptions;
 using Serilog;
 
@@ -47,10 +49,19 @@ public class AudioQueueService
                 }.Uri;
             }
 
+            // Remove all query parameters from result except for "v="
+            NameValueCollection query = HttpUtility.ParseQueryString(result.Query);
+            string? v = query["v"];
+            result = new UriBuilder(result)
+            {
+                Query = $"v={(string.IsNullOrEmpty(v) ? "dQw4w9WgXcQ" : v)}"
+            }.Uri;
+
             Guid trackId = Guid.NewGuid();
             // Guard against random chance fuckery
             while (TrackQueue.ContainsKey(trackId))
             {
+                // If it happens a second time I just give up
                 trackId = Guid.NewGuid();
             }
 
@@ -107,9 +118,9 @@ public class AudioQueueService
     ///   Gets a list of guilds that have queues
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<ulong> GetGuildsWithPlaybackQueues()
+    public List<ulong> GetGuildsWithPlaybackQueues()
     {
-        return TrackQueue.Values.Select(track => track.GuildId).Distinct();
+        return [.. TrackQueue.Values.Select(track => track.GuildId).Distinct()];
     }
 
     /// <summary>
@@ -117,18 +128,18 @@ public class AudioQueueService
     /// </summary>
     /// <param name="guildId"></param>
     /// <returns></returns>
-    public IEnumerable<QueuedAudioTrack> GetQueueForGuild(ulong guildId)
+    public List<QueuedAudioTrack> GetQueueForGuild(ulong guildId)
     {
-        return TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState != QueuedAudioTrack.State.Playing);
+        return [.. TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState != QueuedAudioTrack.State.Playing)];
     }
 
     /// <summary>
     ///   Gets a list of guilds that have skip requests
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<ulong> GetGuildsWithSkips()
+    public List<ulong> GetGuildsWithSkips()
     {
-        return GuildSkips.Where(kvp => kvp.Value).Select(kvp => kvp.Key);
+        return [.. GuildSkips.Where(kvp => kvp.Value).Select(kvp => kvp.Key)];
     }
 
     /// <summary>
@@ -161,9 +172,9 @@ public class AudioQueueService
     /// <exception cref="BeepskyException"></exception>
     public QueuedAudioTrack? GetCurrentlyPlayingTrackForGuild(ulong guildId)
     {
-        IEnumerable<QueuedAudioTrack> guildTracksPlaying = TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState == QueuedAudioTrack.State.Playing);
+        List<QueuedAudioTrack> guildTracksPlaying = [.. TrackQueue.Values.Where(track => track.GuildId == guildId && track.CurrentState == QueuedAudioTrack.State.Playing)];
 
-        if (guildTracksPlaying.Count() > 1)
+        if (guildTracksPlaying.Count > 1)
         {
             throw new BeepskyException("Invalid state, multiple tracks playing for guild " + guildId);
         }

@@ -157,6 +157,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             if (!File.Exists(track.DownloadedFilePath))
             {
                 Log.Error("Audio file not found: {Link}", track.DownloadedFilePath);
+                return;
             }
 
             List<string> arguments = [
@@ -228,12 +229,7 @@ internal sealed class BeepskyVoiceLogger : IVoiceLogger
 {
     public bool IsEnabled(LogLevel logLevel)
     {
-        if (logLevel >= LogLevel.Warning)
-        {
-            return true;
-        }
-
-        return false;
+        return logLevel >= LogLevel.Warning;
     }
 
     public void Log<TState>(LogLevel logLevel, TState state, Exception? exception, Func<TState, Exception?, string> formatter)

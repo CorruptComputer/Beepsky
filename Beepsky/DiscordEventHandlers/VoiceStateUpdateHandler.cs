@@ -19,7 +19,7 @@ public class VoiceStateUpdateHandler(GatewayClient gatewayClient, AudioQueueServ
         // The bot was disconnected from vc
         if (arg.UserId == gatewayClient.Id)
         {
-            // This is seperate from the above if intentionally, so other self-events are just silently ignored.
+            // This is separate from the above if intentionally, so other self-events are just silently ignored.
             if (arg.ChannelId is null)
             {
                 audioQueueService.AddStopForGuild(arg.GuildId);
@@ -56,8 +56,7 @@ public class VoiceStateUpdateHandler(GatewayClient gatewayClient, AudioQueueServ
         // And the month is December
         if (botVoiceState is null
             && changedChannelVoiceStates.Count == 0 // Count not updated in cache yet
-            && DateTime.UtcNow.Month == 12
-            && DateTime.UtcNow.Day <= 25)
+            && DateTime.UtcNow.Month == 12)
         {
             await sender.Send(new QueueRandomChristmasSongs.Command(arg.GuildId, arg.ChannelId.Value));
         }

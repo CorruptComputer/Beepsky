@@ -71,12 +71,12 @@ public sealed class GenerateExpressionTree : IRequestHandler<GenerateExpressionT
             return new ValueNode(target);
         }
 
-        var candidates = GenerateInverseCandidates(target);
+        List<InverseCandidate> candidates = GenerateInverseCandidates(target);
 
         // Randomize order, biasing against repeating the same operator
         WeightedShuffle(candidates, ctx.LastOperator);
 
-        foreach (var candidate in candidates)
+        foreach (InverseCandidate candidate in candidates)
         {
             // Check if we can use an operation before committing
             if (!ctx.TryUseOperation(candidate.Operator))

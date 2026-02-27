@@ -34,7 +34,7 @@ public sealed class Expression(ExpressionNode root)
     /// <exception cref="BeepskyException">Thrown when the expression is invalid.</exception>
     public static Expression Parse(string input)
     {
-        var parser = new ExpressionParser(input);
+        ExpressionParser parser = new(input);
         ExpressionNode node = parser.ParseExpression();
         if (!parser.IsAtEnd)
         {

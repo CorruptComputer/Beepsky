@@ -145,6 +145,12 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
             catch (Exception ex)
             {
                 Log.Error(ex, "Error downloading audio {Uri}", track.TrackUri);
+
+                if (!track.CancellationTokenSource.IsCancellationRequested)
+                {
+                    await track.CancellationTokenSource.CancelAsync();
+                }
+
                 ytdlp.Kill();
                 ytdlp.Dispose();
             }
@@ -154,7 +160,11 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
         catch (Exception ex)
         {
             Log.Error(ex, "Error downloading audio {Uri}", track.TrackUri);
-            return;
+
+            if (!track.CancellationTokenSource.IsCancellationRequested)
+            {
+                await track.CancellationTokenSource.CancelAsync();
+            }
         }
     }
 

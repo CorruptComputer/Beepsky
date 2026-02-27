@@ -3,7 +3,7 @@ namespace Beepsky.Models;
 /// <summary>
 ///   Represents an audio track queued for download or playback
 /// </summary>
-public sealed record QueuedAudioTrack
+public sealed class QueuedAudioTrack
 {
     /// <summary>
     ///   The guild ID this track is queued for
