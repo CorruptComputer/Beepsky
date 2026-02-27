@@ -47,7 +47,7 @@ public class VoiceConnectionService(GatewayClient gatewayClient, RestClient rest
         {
             await voiceConnection.VoiceClient.StartAsync(cancellationToken);
             await voiceConnection.VoiceClient.EnterSpeakingStateAsync(new SpeakingProperties(SpeakingFlags.Microphone), cancellationToken: cancellationToken);
-            voiceConnection.OutStream = voiceConnection.VoiceClient.CreateVoiceStream();
+            voiceConnection.OutStream = voiceConnection.VoiceClient.CreateOutputStream();
             voiceConnection.OpusEncodeStream = new(voiceConnection.OutStream, PcmFormat.Short, VoiceChannels.Stereo, OpusApplication.Audio);
         }
 
