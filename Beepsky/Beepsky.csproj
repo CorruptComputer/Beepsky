@@ -36,10 +36,10 @@
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="libsodium" Version="1.0.21" />
     <PackageReference Include="OllamaSharp" Version="5.4.16" />
-    <PackageReference Include="NetCord" Version="1.0.0-alpha.460" />
-    <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.460" />
-    <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.460" />
-    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.460" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.468" />
+    <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.468" />
+    <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.468" />
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.468" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <PrivateAssets>all</PrivateAssets>
@@ -62,6 +62,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="./libdave.so" CopyToOutputDirectory="PreserveNewest" />
+
     <!-- I use Arch BTW, so this is the file path for me when doing local dev, if its different for you cool you can change it -->
     <Content Include="/usr/lib/libopus.so" CopyToOutputDirectory="PreserveNewest" Condition="$(ContinuousIntegrationBuild) != true" />
 

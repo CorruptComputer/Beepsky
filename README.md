@@ -2,6 +2,8 @@
 
 This is a discord bot.
 
+./Beepsky/libdave.so from: https://github.com/discord/libdave
+
 Built using:
 - [NetCord](https://github.com/NetCordDev/NetCord)
 - Postgres
