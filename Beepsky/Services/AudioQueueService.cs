@@ -4,14 +4,35 @@ using System.Web;
 using Beepsky.Exceptions;
 using Serilog;
 
+// NetCord has a Channel type that we need to disambiguate here
+using STC = System.Threading.Channels;
+
 namespace Beepsky.Services;
 
 /// <summary>
 ///   Handles audio playback functionality
 ///   This should be a singleton that can be used by any thread
 /// </summary>
-public class AudioQueueService
+public class AudioQueueService : IDisposable
 {
+    private readonly STC.Channel<QueuedAudioTrack> _downloadChannel = STC.Channel.CreateUnbounded<QueuedAudioTrack>();
+    private readonly SemaphoreSlim _playbackWakeSignal = new(0);
+
+    /// <summary>
+    ///   The channel reader for the download queue; consumed by <see cref="AudioDownloadService"/>
+    /// </summary>
+    public STC.ChannelReader<QueuedAudioTrack> DownloadChannelReader => _downloadChannel.Reader;
+
+    /// <summary>
+    ///   Wake signal for the playback loop; await this instead of polling
+    /// </summary>
+    public SemaphoreSlim PlaybackWakeSignal => _playbackWakeSignal;
+
+    /// <summary>
+    ///   Releases the playback wake signal so <see cref="AudioPlaybackService"/> processes the next state change
+    /// </summary>
+    public void SignalPlaybackReady() => _playbackWakeSignal.Release();
+
     // <QueuedAudioTrackId, QueuedAudioTrack>
     // ID is just needed to make it possible to remove specific tracks, ConcurrentBag and ConcurrentQueue don't support removal of specific items
     private readonly ConcurrentDictionary<Guid, QueuedAudioTrack> TrackQueue = [];
@@ -65,7 +86,7 @@ public class AudioQueueService
                 trackId = Guid.NewGuid();
             }
 
-            TrackQueue[trackId] = new()
+            QueuedAudioTrack newTrack = new()
             {
                 GuildId = guildId,
                 VoiceChannelId = voiceChannelId,
@@ -74,6 +95,9 @@ public class AudioQueueService
                 TrackUri = result,
                 CancellationTokenSource = new()
             };
+
+            TrackQueue[trackId] = newTrack;
+            _downloadChannel.Writer.TryWrite(newTrack);
 
             return true;
         }
@@ -89,7 +113,9 @@ public class AudioQueueService
     /// <returns></returns>
     public bool AddSkipForGuild(ulong guildId)
     {
-        return GuildSkips.AddOrUpdate(guildId, true, (_, _) => true);
+        bool result = GuildSkips.AddOrUpdate(guildId, true, (_, _) => true);
+        _playbackWakeSignal.Release();
+        return result;
     }
 
     /// <summary>
@@ -111,7 +137,9 @@ public class AudioQueueService
         }
 
         // Finally need to skip the currently playing track
-        return GuildSkips.AddOrUpdate(guildId, true, (_, _) => true);
+        bool result = GuildSkips.AddOrUpdate(guildId, true, (_, _) => true);
+        _playbackWakeSignal.Release();
+        return result;
     }
 
     /// <summary>
@@ -183,27 +211,6 @@ public class AudioQueueService
     }
 
     /// <summary>
-    ///   Get the next track to download from the queue
-    /// </summary>
-    /// <returns></returns>
-    public QueuedAudioTrack? GetNextDownload()
-    {
-        List<QueuedAudioTrack> tracksWaitingForDownload = [.. TrackQueue.Values.Where(track => track.CurrentState == QueuedAudioTrack.State.QueuedForDownload)];
-        List<QueuedAudioTrack> cancelledTracks = [.. tracksWaitingForDownload.Where(track => track.CancellationTokenSource.IsCancellationRequested)];
-        if (cancelledTracks.Count > 0)
-        {
-            Log.Information("Removing {Count} cancelled tracks from download queue", cancelledTracks.Count);
-            foreach (QueuedAudioTrack cancelledTrack in cancelledTracks)
-            {
-                RemoveTrack(cancelledTrack);
-                tracksWaitingForDownload.Remove(cancelledTrack);
-            }
-        }
-
-        return tracksWaitingForDownload.OrderBy(track => track.QueuedAt).FirstOrDefault();
-    }
-
-    /// <summary>
     ///   Clears the skip request for a guild
     /// </summary>
     /// <param name="guildId"></param>
@@ -230,5 +237,12 @@ public class AudioQueueService
             track.CancellationTokenSource.Cancel();
         }
         catch (ObjectDisposedException) { /* Ignore */ }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _playbackWakeSignal.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

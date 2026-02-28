@@ -10,6 +10,7 @@ namespace Beepsky.Database;
 /// <param name="config"></param>
 public sealed class BeepskyDbContext(BeepskyConfiguration config) : DbContext
 {
+    internal DbSet<AudioDownload> AudioDownloads { get; set; }
     internal DbSet<DiscordGuild> DiscordGuilds { get; set; }
 
     internal DbSet<DiscordGuildUserStatistic> DiscordGuildUserStatistics { get; set; }
@@ -44,6 +45,7 @@ public sealed class BeepskyDbContext(BeepskyConfiguration config) : DbContext
     /// <param name="modelBuilder"></param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AudioDownload>(AudioDownload.BuildTable);
         modelBuilder.Entity<DiscordGuild>(DiscordGuild.BuildTable);
         modelBuilder.Entity<DiscordGuildUserStatistic>(DiscordGuildUserStatistic.BuildTable);
         modelBuilder.Entity<DiscordUser>(DiscordUser.BuildTable);

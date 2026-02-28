@@ -62,6 +62,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- v1.1.1 from: https://github.com/discord/libdave/releases -->
     <Content Include="./libdave.so" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- I use Arch BTW, so this is the file path for me when doing local dev, if its different for you cool you can change it -->

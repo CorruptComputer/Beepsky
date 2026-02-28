@@ -1,6 +1,9 @@
 using System.Diagnostics;
+using Beepsky.Database.DbSets;
+using Beepsky.Database.Operations.AudioDownloads;
 using Beepsky.Exceptions;
 using Beepsky.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NetCord.Logging;
 using Serilog;
@@ -13,7 +16,8 @@ namespace Beepsky.Services;
 /// </summary>
 /// <param name="audioQueue"></param>
 /// <param name="voiceConnectionService"></param>
-public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionService voiceConnectionService) : BackgroundService
+/// <param name="serviceScopeFactory"></param>
+public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionService voiceConnectionService, IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -33,10 +37,10 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 IEnumerable<ulong> guildsWithQueues = audioQueue.GetGuildsWithPlaybackQueues();
                 foreach (ulong guildId in guildsWithQueues)
                 {
-                    await ProcessQueueForGuildAsync(guildId);
+                    await ProcessQueueForGuildAsync(guildId, stoppingToken);
                 }
 
-                await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+                await audioQueue.PlaybackWakeSignal.WaitAsync(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -62,7 +66,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
         audioQueue.ClearSkipForGuild(guildId);
     }
 
-    private async Task ProcessQueueForGuildAsync(ulong guildId)
+    private async Task ProcessQueueForGuildAsync(ulong guildId, CancellationToken cancellationToken)
     {
         // Get next track, skipping cancelled ones
         QueuedAudioTrack? nextTrack = audioQueue.GetNextPlayback(guildId);
@@ -104,7 +108,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 if (nextTrack is null)
                 {
                     Log.Information("No tracks left to play for guild {GuildId}", guildId);
-                    await voiceConnectionService.DisconnectFromGuildAsync(guildId);
+                    await voiceConnectionService.DisconnectFromGuildAsync(guildId, cancellationToken);
                     return;
                 }
             }
@@ -123,13 +127,23 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
 
             nextTrack.PlaybackTask = Task.Run(async () =>
             {
+                using IServiceScope scope = serviceScopeFactory.CreateScope();
+                ISender scopedSender = scope.ServiceProvider.GetRequiredService<ISender>();
+
                 nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
-                await PlayAudioFile(nextTrack);
+                await PlayAudioFile(nextTrack, scopedSender);
             }, nextTrack.CancellationTokenSource.Token);
+
+            // Wake the playback loop when this track finishes (for any reason) so the next track starts promptly
+            _ = nextTrack.PlaybackTask.ContinueWith(
+                _ => audioQueue.SignalPlaybackReady(),
+                cancellationToken,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
         }
     }
 
-    private async Task PlayAudioFile(QueuedAudioTrack track)
+    private async Task PlayAudioFile(QueuedAudioTrack track, ISender sender)
     {
         Log.Information("Playback task started for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
 
@@ -158,6 +172,21 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             {
                 Log.Error("Audio file not found: {Link}", track.DownloadedFilePath);
                 return;
+            }
+
+            try
+            {
+                AudioDownload? dbEntry = await sender.Send(new GetAudioDownloadByUrl.Command(track.TrackUri.ToString()), CancellationToken.None);
+                if (dbEntry is not null)
+                {
+                    dbEntry.PlayCount++;
+                    dbEntry.LastAccessedAt = DateTimeOffset.UtcNow;
+                    await sender.Send(new UpdateAudioDownload.Command(dbEntry), CancellationToken.None);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error updating play count for track {Track}", track.DownloadedFilePath);
             }
 
             List<string> arguments = [
