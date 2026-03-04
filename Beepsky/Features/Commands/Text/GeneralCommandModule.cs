@@ -104,8 +104,8 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
         string audioCommands = $"""
             **Audio Commands** (server-only)
             - {BeepskyConfiguration.Prefix}q [link] - Queues a track to play from YouTube or SoundCloud
-              - {BeepskyConfiguration.Prefix}q anuc - Queues 10 random Anuc songs
-              - {BeepskyConfiguration.Prefix}q christmas - Queues 10 random Christmas songs
+              - {BeepskyConfiguration.Prefix}q anuc - Queues 5 random Anuc songs
+              - {BeepskyConfiguration.Prefix}q christmas - Queues 5 random Christmas songs
             - {BeepskyConfiguration.Prefix}skip - Skip the currently playing track
             - {BeepskyConfiguration.Prefix}stop - Stop playback and clear the queue
             - {BeepskyConfiguration.Prefix}lq - Lists the current queue of tracks
