@@ -1,4 +1,6 @@
 using System.Text;
+using Beepsky.Database.DbSets;
+using Beepsky.Database.Operations.AudioDownloads;
 using Beepsky.Features.Audio;
 using Beepsky.Services;
 using NetCord.Gateway;
@@ -17,7 +19,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     [Command("q")]
-    public async Task<string> QueueTrack(string track)
+    public async Task<string> QueueTrackAsync(string track)
     {
 
         if (Context.Guild is null)
@@ -114,7 +116,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     /// </summary>
     /// <returns></returns>
     [Command("lq")]
-    public async Task ListQueue()
+    public async Task ListQueueAsync()
     {
         if (Context.Guild is null)
         {
@@ -134,7 +136,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
         StringBuilder response = new($"Currently Playing: ");
         if (currentlyPlaying is not null)
         {
-            response.Append(GetFormattedTrackTitle(currentlyPlaying));
+            response.Append(GetFormattedTrackTitleFromQueuedAudioTrack(currentlyPlaying));
         }
         else
         {
@@ -155,7 +157,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             {
                 response.Append(index);
                 response.Append(". ");
-                response.Append(GetFormattedTrackTitle(track));
+                response.Append(GetFormattedTrackTitleFromQueuedAudioTrack(track));
                 response.Append(" (");
                 response.Append(Enum.GetName(track.CurrentState));
                 response.Append(")\n");
@@ -163,14 +165,54 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             }
         }
 
-        RestMessage reply = await Context.Message.ReplyAsync(new ReplyMessageProperties()
+        await Context.Message.ReplyAsync(new ReplyMessageProperties()
         {
             Content = response.ToString(),
             Flags = MessageFlags.SuppressEmbeds
         });
     }
 
-    private static string GetFormattedTrackTitle(QueuedAudioTrack track)
+    /// <summary>
+    ///   Shows the top 10 most played tracks
+    /// </summary>
+    /// <returns></returns>
+    [Command("top")]
+    public async Task TopTracksAsync()
+    {
+        // Not ready yet, need more data in the db since this count tracking was added recently
+        if (Context.User.Id != (ulong)WellKnownUsers.Monke)
+        {
+            return;
+        }
+
+        List<AudioDownload>? topTracks = await sender.Send(new GetTopAudioTracks.Command());
+        if (topTracks is null || topTracks.Count == 0)
+        {
+            await Context.Message.ReplyAsync("No tracks have been played yet.");
+            return;
+        }
+
+        StringBuilder response = new("**Top tracks for Beepsky:**\n");
+        int index = 1;
+        foreach (AudioDownload track in topTracks)
+        {
+            response.Append(index);
+            response.Append(". ");
+            response.Append(GetFormattedTrackTitleFromAudioDownload(track));
+            response.Append(" (");
+            response.Append(track.PlayCount);
+            response.Append(" plays)\n");
+            index++;
+        }
+
+        await Context.Message.ReplyAsync(new ReplyMessageProperties()
+        {
+            Content = response.ToString(),
+            Flags = MessageFlags.SuppressEmbeds
+        });
+    }
+
+    private static string GetFormattedTrackTitleFromQueuedAudioTrack(QueuedAudioTrack track)
     {
         string title = string.Empty;
 
@@ -181,6 +223,22 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
         else
         {
             title += track.TrackUri.ToString();
+        }
+
+        return title;
+    }
+
+    private static string GetFormattedTrackTitleFromAudioDownload(AudioDownload track)
+    {
+        string title = string.Empty;
+
+        if (track.Title is not null)
+        {
+            title += $"[{track.Title}]({track.DownloadUrl})";
+        }
+        else
+        {
+            title += track.DownloadUrl.ToString();
         }
 
         return title;

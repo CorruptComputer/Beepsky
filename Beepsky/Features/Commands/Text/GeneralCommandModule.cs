@@ -2,6 +2,7 @@ using System.Globalization;
 using Beepsky.Exceptions;
 using Beepsky.Features.TerribleCounting;
 using Beepsky.Models.MathExpressions;
+using NetCord.Rest;
 using NetCord.Services.Commands;
 
 namespace Beepsky.Features.Commands.Text;
@@ -48,11 +49,21 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     /// <param name="equals"></param>
     /// <returns></returns>
     [Command("eq")]
-    public async Task<string> Equation([CommandParameter(Remainder = true)] int equals)
+    public async Task Equation([CommandParameter(Remainder = true)] int equals)
     {
+        // Not ready yet
+        if (Context.User.Id != (ulong)WellKnownUsers.Monke)
+        {
+            return;
+        }
+
         Expression? expression = await sender.Send(new GenerateExpressionTree.Query(equals));
 
-        return expression?.ToString() ?? "Could not generate expression.";
+        await Context.Message.ReplyAsync(new ReplyMessageProperties()
+        {
+            Content = expression?.ToString(),
+            Flags = MessageFlags.SuppressEmbeds
+        });
     }
 
     /// <summary>
@@ -61,14 +72,24 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     /// <param name="expressionStr"></param>
     /// <returns></returns>
     [Command("eval")]
-    public static Task<string> Evaluate([CommandParameter(Remainder = true)] string expressionStr)
+    public async Task Evaluate([CommandParameter(Remainder = true)] string expressionStr)
     {
-        if (!Expression.TryParse(expressionStr, out Expression? expression))
+        // Not ready yet
+        if (Context.User.Id != (ulong)WellKnownUsers.Monke)
         {
-            return Task.FromResult("Invalid expression format.");
+            return;
         }
 
-        return Task.FromResult(Math.Round(expression.Root.Value, 10).ToString(CultureInfo.InvariantCulture));
+        if (!Expression.TryParse(expressionStr, out Expression? expression))
+        {
+            return;
+        }
+
+        await Context.Message.ReplyAsync(new ReplyMessageProperties()
+        {
+            Content = Math.Round(expression.Root.Value, 10).ToString(CultureInfo.InvariantCulture),
+            Flags = MessageFlags.SuppressEmbeds
+        });
     }
 
     /// <summary>
@@ -76,25 +97,49 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     /// </summary>
     /// <returns></returns>
     [Command("help")]
-    public static string Help()
+    public async Task HelpAsync()
     {
-        string helpMessage = $"""
+        // When this is ready:
+        //  - {BeepskyConfiguration.Prefix}top - Show the top 10 most played tracks
+        string audioCommands = $"""
             **Audio Commands** (server-only)
             - {BeepskyConfiguration.Prefix}q [link] - Queues a track to play from YouTube
             - {BeepskyConfiguration.Prefix}skip - Skip the currently playing track
             - {BeepskyConfiguration.Prefix}stop - Stop playback and clear the queue
             - {BeepskyConfiguration.Prefix}lq - Lists the current queue of tracks
+
+            """;
+
+        // When this is ready:
+        //  - {BeepskyConfiguration.Prefix}eq [number] - Generate a random equation that equals the given number
+        //  - {BeepskyConfiguration.Prefix}eval [expression] - Evaluate a mathematical expression
+        string generalCommands = $"""
             **General Commands**
             - {BeepskyConfiguration.Prefix}8ball [question (optional)] - Ask the magic 8-ball a question
             - {BeepskyConfiguration.Prefix}help - Show this help message
-            - {BeepskyConfiguration.Prefix}eq [number] - Generate a random equation that equals the given number
-            - {BeepskyConfiguration.Prefix}eval [expression] - Evaluate a mathematical expression
             - {BeepskyConfiguration.Prefix}ping - Pong!
 
-            If you @ ping me, I might respond!
             """;
 
-        return helpMessage;
+        string footer = $"""
+            If you @ ping me, I might respond! [Source available](https://github.com/CorruptComputer/Beepsky)
+            """;
+
+        string fullHelpMessage = string.Empty;
+
+        if (Context.Guild != null)
+        {
+            fullHelpMessage += audioCommands;
+        }
+
+        fullHelpMessage += generalCommands;
+        fullHelpMessage += footer;
+
+        await Context.Message.ReplyAsync(new ReplyMessageProperties()
+        {
+            Content = fullHelpMessage,
+            Flags = MessageFlags.SuppressEmbeds
+        });
     }
 
     /// <summary>
