@@ -115,7 +115,12 @@ public sealed class QueuedAudioTrack
         /// <summary>
         ///   YouTube download
         /// </summary>
-        YouTube
+        YouTube,
+
+        /// <summary>
+        ///   SoundCloud download
+        /// </summary>
+        SoundCloud
     }
 }
 

@@ -52,20 +52,20 @@ public sealed class QueueRandomAnucSongs(AudioQueueService audioQueueService) : 
     public record Command(ulong GuildId, ulong VoiceChannelId) : IRequest<CommandResponse>;
 
     /// <inheritdoc />
-    public Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
+    public async Task<CommandResponse> Handle(Command request, CancellationToken cancellationToken)
     {
         // Get 5 random songs
         IEnumerable<string> shuffledSongs = Random.Shared.GetUniqueItems(anucSongs, 5);
 
         foreach (string song in shuffledSongs)
         {
-            bool success = audioQueueService.AddTrackToQueue(request.VoiceChannelId, request.GuildId, song);
+            bool success = await audioQueueService.AddTrackToQueue(request.VoiceChannelId, request.GuildId, song);
             if (!success)
             {
-                return Task.FromResult(CommandResponse.Fail("Failed to add a track to the queue: " + song));
+                return CommandResponse.Fail("Failed to add a track to the queue: " + song);
             }
         }
 
-        return Task.FromResult(CommandResponse.Pass());
+        return CommandResponse.Pass();
     }
 }

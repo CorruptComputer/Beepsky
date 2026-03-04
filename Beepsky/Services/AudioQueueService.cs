@@ -17,6 +17,7 @@ public class AudioQueueService : IDisposable
 {
     private readonly STC.Channel<QueuedAudioTrack> _downloadChannel = STC.Channel.CreateUnbounded<QueuedAudioTrack>();
     private readonly SemaphoreSlim _playbackWakeSignal = new(0);
+    private readonly HttpClient _httpClient = new(new HttpClientHandler { AllowAutoRedirect = false });
 
     /// <summary>
     ///   The channel reader for the download queue; consumed by <see cref="AudioDownloadService"/>
@@ -47,7 +48,7 @@ public class AudioQueueService : IDisposable
     /// <param name="guildId"></param>
     /// <param name="track"></param>
     /// <returns></returns>
-    public bool AddTrackToQueue(ulong voiceChannelId, ulong guildId, string track)
+    public async Task<bool> AddTrackToQueue(ulong voiceChannelId, ulong guildId, string track)
     {
         bool valid = Uri.TryCreate(track, UriKind.Absolute, out Uri? result);
 
@@ -59,51 +60,113 @@ public class AudioQueueService : IDisposable
             return false;
         }
 
-        if (result.Host is "www.youtube.com" or "youtube.com" or "youtu.be")
+        QueuedAudioTrack.DownloadType? type = GetDownloadType(result);
+        Uri? normalizedUri = type switch
         {
-            if (result.Host is "youtu.be")
-            {
-                result = new UriBuilder("https", "www.youtube.com")
-                {
-                    Path = "/watch",
-                    Query = $"v={result.AbsolutePath.TrimStart('/')}"
-                }.Uri;
-            }
+            QueuedAudioTrack.DownloadType.YouTube => NormalizeYouTubeUrl(result),
+            QueuedAudioTrack.DownloadType.SoundCloud => await NormalizeSoundCloudUrlAsync(result),
+            _ => null
+        };
 
-            // Remove all query parameters from result except for "v="
-            NameValueCollection query = HttpUtility.ParseQueryString(result.Query);
-            string? v = query["v"];
-            result = new UriBuilder(result)
-            {
-                Query = $"v={(string.IsNullOrEmpty(v) ? "dQw4w9WgXcQ" : v)}"
-            }.Uri;
-
-            Guid trackId = Guid.NewGuid();
-            // Guard against random chance fuckery
-            while (TrackQueue.ContainsKey(trackId))
-            {
-                // If it happens a second time I just give up
-                trackId = Guid.NewGuid();
-            }
-
-            QueuedAudioTrack newTrack = new()
-            {
-                GuildId = guildId,
-                VoiceChannelId = voiceChannelId,
-                CurrentState = QueuedAudioTrack.State.QueuedForDownload,
-                Type = QueuedAudioTrack.DownloadType.YouTube,
-                TrackUri = result,
-                CancellationTokenSource = new()
-            };
-
-            TrackQueue[trackId] = newTrack;
-            _downloadChannel.Writer.TryWrite(newTrack);
-
-            return true;
+        if (type is null || normalizedUri is null)
+        {
+            Log.Warning("Unsupported track URL provided: {Link}", track);
+            return false;
         }
 
-        Log.Warning("Unsupported track URL provided: {Link}", track);
-        return false;
+        return EnqueueTrack(voiceChannelId, guildId, normalizedUri, type.Value);
+    }
+
+    private static QueuedAudioTrack.DownloadType? GetDownloadType(Uri uri) => uri.Host switch
+    {
+        "www.youtube.com" or "youtube.com" or "youtu.be" => QueuedAudioTrack.DownloadType.YouTube,
+        "soundcloud.com" or "www.soundcloud.com" or "on.soundcloud.com" => QueuedAudioTrack.DownloadType.SoundCloud,
+        _ => null
+    };
+
+    private static Uri NormalizeYouTubeUrl(Uri uri)
+    {
+        if (uri.Host is "youtu.be")
+        {
+            uri = new UriBuilder("https", "www.youtube.com")
+            {
+                Path = "/watch",
+                Query = $"v={uri.AbsolutePath.TrimStart('/')}"
+            }.Uri;
+        }
+
+        // Remove all query parameters except for "v="
+        NameValueCollection query = HttpUtility.ParseQueryString(uri.Query);
+        string? v = query["v"];
+        uri = new UriBuilder(uri)
+        {
+            Query = $"v={(string.IsNullOrEmpty(v) ? "dQw4w9WgXcQ" : v)}"
+        }.Uri;
+
+        return uri;
+    }
+
+    private async Task<Uri?> NormalizeSoundCloudUrlAsync(Uri uri)
+    {
+        // Resolve short links to the canonical URL
+        if (uri.Host is "on.soundcloud.com")
+        {
+            try
+            {
+                HttpResponseMessage response = await _httpClient.SendAsync(
+                    new HttpRequestMessage(HttpMethod.Head, uri)
+                );
+
+                string? location = response.Headers.Location?.ToString();
+                if (string.IsNullOrEmpty(location) || !Uri.TryCreate(location, UriKind.Absolute, out Uri? resolved))
+                {
+                    Log.Warning("Could not resolve SoundCloud short link: {Uri}", uri);
+                    return null;
+                }
+
+                uri = resolved;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to resolve SoundCloud short link: {Uri}", uri);
+                return null;
+            }
+        }
+
+        // Strip www. and all query params
+        uri = new UriBuilder("https", "soundcloud.com")
+        {
+            Path = uri.AbsolutePath,
+            Query = string.Empty
+        }.Uri;
+
+        return uri;
+    }
+
+    private bool EnqueueTrack(ulong voiceChannelId, ulong guildId, Uri trackUri, QueuedAudioTrack.DownloadType type)
+    {
+        Guid trackId = Guid.NewGuid();
+        // Guard against random chance fuckery
+        while (TrackQueue.ContainsKey(trackId))
+        {
+            // If it happens a second time I just give up
+            trackId = Guid.NewGuid();
+        }
+
+        QueuedAudioTrack newTrack = new()
+        {
+            GuildId = guildId,
+            VoiceChannelId = voiceChannelId,
+            CurrentState = QueuedAudioTrack.State.QueuedForDownload,
+            Type = type,
+            TrackUri = trackUri,
+            CancellationTokenSource = new()
+        };
+
+        TrackQueue[trackId] = newTrack;
+        _downloadChannel.Writer.TryWrite(newTrack);
+
+        return true;
     }
 
     /// <summary>
@@ -254,6 +317,7 @@ public class AudioQueueService : IDisposable
     public void Dispose()
     {
         _playbackWakeSignal.Dispose();
+        _httpClient.Dispose();
         GC.SuppressFinalize(this);
     }
 }

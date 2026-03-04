@@ -35,10 +35,11 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
 
         ulong voiceChannelId = voiceState.ChannelId.GetValueOrDefault();
 
+        // Quick queues are just named playlists, it picks a random set of songs if the name matches
         bool added = await TryQuickQueueTracksAsync(track, Context.Guild.Id, voiceChannelId);
         if (!added)
         {
-            added = audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
+            added = await audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
         }
 
         return added
