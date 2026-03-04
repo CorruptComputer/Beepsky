@@ -47,6 +47,11 @@ public class AudioDownload
     /// </summary>
     public required int PlayCount { get; set; }
 
+    /// <summary>
+    ///   True if the file was removed from disk after download; causes the download service to re-download
+    /// </summary>
+    public bool FileRemoved { get; set; }
+
     internal static void BuildTable(EntityTypeBuilder<AudioDownload> builder)
     {
 

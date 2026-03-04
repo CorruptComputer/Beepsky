@@ -220,6 +220,17 @@ public class AudioQueueService : IDisposable
     }
 
     /// <summary>
+    ///   Resets a track's state to QueuedForDownload and re-writes it to the download channel
+    /// </summary>
+    /// <param name="track"></param>
+    public void RequeueTrackForDownload(QueuedAudioTrack track)
+    {
+        track.CancellationTokenSource.TryReset();
+        track.CurrentState = QueuedAudioTrack.State.QueuedForDownload;
+        _downloadChannel.Writer.TryWrite(track);
+    }
+
+    /// <summary>
     ///   Removes a specific track from the queue
     /// </summary>
     /// <param name="track"></param>

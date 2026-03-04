@@ -11,3 +11,6 @@ TestResults/
 /publish/
 codeql-pack.lock.yml
 /rpmbuild/
+
+# What the fuck is this and why does it keep getting created on build
+bin\\Debug/

@@ -85,15 +85,21 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
             string downloadUrl = track.TrackUri.ToString();
 
             // Check DB cache first
+            AudioDownload? dbEntry = null;
             try
             {
-                AudioDownload? dbEntry = await sender.Send(new GetAudioDownloadByUrl.Command(downloadUrl), track.CancellationTokenSource.Token);
+                dbEntry = await sender.Send(new GetAudioDownloadByUrl.Command(downloadUrl), track.CancellationTokenSource.Token);
                 if (dbEntry is not null)
                 {
-                    Log.Information("DB cache hit for URI {Uri}, skipping download", track.TrackUri);
-                    track.Title = dbEntry.Title;
-                    track.DownloadedFilePath = dbEntry.FilePath;
-                    return;
+                    if (!dbEntry.FileRemoved)
+                    {
+                        Log.Information("DB cache hit for URI {Uri}, skipping download", track.TrackUri);
+                        track.Title = dbEntry.Title;
+                        track.DownloadedFilePath = dbEntry.FilePath;
+                        return;
+                    }
+
+                    Log.Information("DB cache hit for URI {Uri}, but file was removed; re-downloading", track.TrackUri);
                 }
             }
             catch (Exception ex)
@@ -116,7 +122,7 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
                 Log.Information("Audio file already exists: {FilePath}", outputFilePath);
                 track.DownloadedFilePath = outputFilePath;
                 await GetMetadataForYouTubeTrackAsync(track);
-                await CreateDbEntryForTrackAsync(track, downloadUrl, sender);
+                await SaveDbEntryForTrackAsync(track, downloadUrl, sender, dbEntry);
                 return;
             }
 
@@ -153,7 +159,7 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
 
                     track.DownloadedFilePath = outputFilePath;
                     await GetMetadataForYouTubeTrackAsync(track);
-                    await CreateDbEntryForTrackAsync(track, downloadUrl, sender);
+                    await SaveDbEntryForTrackAsync(track, downloadUrl, sender, dbEntry);
                 },
                 onTimeout: () =>
                 {
@@ -195,7 +201,7 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
         }
     }
 
-    private static async Task CreateDbEntryForTrackAsync(QueuedAudioTrack track, string downloadUrl, ISender sender)
+    private static async Task SaveDbEntryForTrackAsync(QueuedAudioTrack track, string downloadUrl, ISender sender, AudioDownload? existingEntry)
     {
         if (track.DownloadedFilePath is null)
         {
@@ -204,18 +210,33 @@ public class AudioDownloadService(AudioQueueService audioQueue, BeepskyConfigura
 
         try
         {
-            AudioDownload newEntry = new()
+            if (existingEntry is not null)
             {
-                DownloadUrl = downloadUrl,
-                FilePath = track.DownloadedFilePath,
-                Title = track.Title ?? string.Empty,
-                CreatedAt = DateTimeOffset.UtcNow,
-                LastAccessedAt = DateTimeOffset.UtcNow,
-                PlayCount = 0
-            };
+                existingEntry.FileRemoved = false;
+                existingEntry.FilePath = track.DownloadedFilePath;
+                if (!string.IsNullOrEmpty(track.Title))
+                {
+                    existingEntry.Title = track.Title;
+                }
+                existingEntry.LastAccessedAt = DateTimeOffset.UtcNow;
+                await sender.Send(new UpdateAudioDownload.Command(existingEntry), CancellationToken.None);
+                Log.Information("Updated audio download metadata in DB for {Uri}", downloadUrl);
+            }
+            else
+            {
+                AudioDownload newEntry = new()
+                {
+                    DownloadUrl = downloadUrl,
+                    FilePath = track.DownloadedFilePath,
+                    Title = track.Title ?? string.Empty,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    LastAccessedAt = DateTimeOffset.UtcNow,
+                    PlayCount = 0
+                };
 
-            await sender.Send(new CreateAudioDownload.Command(newEntry), CancellationToken.None);
-            Log.Information("Saved audio download metadata to DB for {Uri}", downloadUrl);
+                await sender.Send(new CreateAudioDownload.Command(newEntry), CancellationToken.None);
+                Log.Information("Saved audio download metadata to DB for {Uri}", downloadUrl);
+            }
         }
         catch (Exception ex)
         {

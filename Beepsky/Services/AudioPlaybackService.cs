@@ -131,7 +131,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
                 ISender scopedSender = scope.ServiceProvider.GetRequiredService<ISender>();
 
                 nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
-                await PlayAudioFile(nextTrack, scopedSender);
+                await PlayAudioFile(nextTrack, scopedSender, cancellationToken);
             }, nextTrack.CancellationTokenSource.Token);
 
             // Wake the playback loop when this track finishes (for any reason) so the next track starts promptly
@@ -143,7 +143,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
         }
     }
 
-    private async Task PlayAudioFile(QueuedAudioTrack track, ISender sender)
+    private async Task PlayAudioFile(QueuedAudioTrack track, ISender sender, CancellationToken botCancellationToken)
     {
         Log.Information("Playback task started for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
 
@@ -159,9 +159,11 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
             return;
         }
 
+        bool requeuedForDownload = false;
+
         try
         {
-            VoiceConnection voiceConnection = await voiceConnectionService.GetOrCreateVoiceConnectionForTrackAsync(track);
+            VoiceConnection voiceConnection = await voiceConnectionService.GetOrCreateVoiceConnectionForTrackAsync(track, botCancellationToken);
 
             if (voiceConnection.OpusEncodeStream is null)
             {
@@ -170,7 +172,23 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
 
             if (!File.Exists(track.DownloadedFilePath))
             {
-                Log.Error("Audio file not found: {Link}", track.DownloadedFilePath);
+                Log.Warning("Audio file missing at playback time, requeueing for re-download: {FilePath}", track.DownloadedFilePath);
+                try
+                {
+                    AudioDownload? dbEntry = await sender.Send(new GetAudioDownloadByUrl.Command(track.TrackUri.ToString()), track.CancellationTokenSource.Token);
+                    if (dbEntry is not null)
+                    {
+                        dbEntry.FileRemoved = true;
+                        await sender.Send(new UpdateAudioDownload.Command(dbEntry), track.CancellationTokenSource.Token);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error setting FileRemoved flag for track {TrackUri}", track.TrackUri);
+                }
+
+                audioQueue.RequeueTrackForDownload(track);
+                requeuedForDownload = true;
                 return;
             }
 
@@ -211,6 +229,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
 
             using Process ffmpeg = Process.Start(startInfo)
                 ?? throw new BeepskyException("Could not start FFmpeg process");
+
             try
             {
                 await ffmpeg.StandardOutput.BaseStream.CopyToAsync(voiceConnection.OpusEncodeStream, track.CancellationTokenSource.Token).AwaitWithTimeout(
@@ -247,7 +266,11 @@ public class AudioPlaybackService(AudioQueueService audioQueue, VoiceConnectionS
         }
         finally
         {
-            track.CancellationTokenSource.Dispose();
+            // If it was requeued, we'll still need it.
+            if (!requeuedForDownload)
+            {
+                track.CancellationTokenSource.Dispose();
+            }
         }
 
         Log.Information("Playback task completed for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);

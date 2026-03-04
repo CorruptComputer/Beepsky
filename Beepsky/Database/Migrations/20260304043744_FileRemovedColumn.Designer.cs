@@ -3,6 +3,7 @@ using System;
 using Beepsky.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Beepsky.Database.Migrations
 {
     [DbContext(typeof(BeepskyDbContext))]
-    partial class BeepskyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304043744_FileRemovedColumn")]
+    partial class FileRemovedColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
