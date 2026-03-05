@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using Beepsky.Exceptions;
 using Beepsky.Features.TerribleCounting;
 using Beepsky.Models.MathExpressions;
@@ -122,8 +123,13 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
 
             """;
 
+        string gitHash = Assembly.GetEntryAssembly()
+                                 ?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                                 // For example: 0.0.1+b9d1873a
+                                 ?.InformationalVersion.Split('+')[1] ?? "ERROR";
+
         string footer = $"""
-            If you @ ping me, I might respond! [Source available](https://github.com/CorruptComputer/Beepsky)
+            If you @ ping me, I might respond! [Source available](https://github.com/CorruptComputer/Beepsky) ({gitHash})
             """;
 
         string fullHelpMessage = string.Empty;
