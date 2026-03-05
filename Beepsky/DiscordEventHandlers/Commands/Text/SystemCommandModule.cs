@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using NetCord.Services.Commands;
 
-namespace Beepsky.Features.Commands.Text;
+namespace Beepsky.DiscordEventHandlers.Commands.Text;
 
 /// <inheritdoc />
 public class SystemCommandModule(IHostApplicationLifetime hostApplicationLifetime) : CommandModule<CommandContext>

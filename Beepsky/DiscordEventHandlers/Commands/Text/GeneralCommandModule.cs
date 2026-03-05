@@ -5,7 +5,7 @@ using Beepsky.Models.MathExpressions;
 using NetCord.Rest;
 using NetCord.Services.Commands;
 
-namespace Beepsky.Features.Commands.Text;
+namespace Beepsky.DiscordEventHandlers.Commands.Text;
 
 /// <inheritdoc />
 public sealed class GeneralCommandModule(ISender sender) : CommandModule<CommandContext>
@@ -99,8 +99,6 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
     [Command("help")]
     public async Task HelpAsync()
     {
-        // When this is ready:
-        //  - {BeepskyConfiguration.Prefix}top - Show the top 10 most played tracks
         string audioCommands = $"""
             **Audio Commands** (server-only)
             - {BeepskyConfiguration.Prefix}q [link] - Queues a track to play from YouTube or SoundCloud
@@ -109,6 +107,7 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
             - {BeepskyConfiguration.Prefix}skip - Skip the currently playing track
             - {BeepskyConfiguration.Prefix}stop - Stop playback and clear the queue
             - {BeepskyConfiguration.Prefix}lq - Lists the current queue of tracks
+            - {BeepskyConfiguration.Prefix}top - Show the top 10 most played tracks
 
             """;
 

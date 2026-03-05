@@ -1,6 +1,6 @@
 using System.Globalization;
 using Beepsky.DiscordEventHandlers;
-using Beepsky.Features.Commands;
+using Beepsky.DiscordEventHandlers.Commands;
 using Beepsky.Services;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Hosting.Gateway;

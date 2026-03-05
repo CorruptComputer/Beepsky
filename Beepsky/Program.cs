@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using NetCord.Hosting.Services.Commands;
-using Beepsky.Features.Commands.Text;
+using Beepsky.DiscordEventHandlers.Commands.Text;
 using Beepsky.Database.Operations;
 
 namespace Beepsky;
@@ -25,7 +25,7 @@ public static class Program
         try
         {
             Console.WriteLine("Starting up Beepsky...");
-            await Host.CreateApplicationBuilder(args).BuildHost().RunHost();
+            await Host.CreateApplicationBuilder(args).BuildHost().RunHostAsync();
         }
         catch (Exception ex)
         {
@@ -53,11 +53,15 @@ public static class Program
         return builder.Build();
     }
 
-    private static async Task RunHost(this IHost host)
+    private static async Task RunHostAsync(this IHost host)
     {
+        // Text commands
         host.AddCommandModule<AudioCommandModule>();
         host.AddCommandModule<GeneralCommandModule>();
         host.AddCommandModule<SystemCommandModule>();
+
+        // Slash commands
+        // (none currently)
 
         ISender sender = host.Services.GetRequiredService<ISender>();
         await sender.Send(new MigrateDb.Command());

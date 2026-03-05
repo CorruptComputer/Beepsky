@@ -4,7 +4,7 @@ using NetCord.Hosting.Services.Commands;
 using NetCord.Services;
 using NetCord.Services.Commands;
 
-namespace Beepsky.Features.Commands;
+namespace Beepsky.DiscordEventHandlers.Commands;
 
 /// <summary>
 ///   Handles command execution results for Beepsky, loosely based on NetCord's default CommandResultHandler, but with the "Command not found" response removed:

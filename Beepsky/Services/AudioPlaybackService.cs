@@ -11,7 +11,7 @@ using Serilog;
 namespace Beepsky.Services;
 
 /// <summary>
-///   Service that handles audio playback in voice channels
+///   Service that handles audio playback.
 ///   This is a background service to allow this to happen in a different thread than the discord events
 /// </summary>
 /// <param name="audioQueue"></param>

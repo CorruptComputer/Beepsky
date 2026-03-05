@@ -7,7 +7,7 @@ using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services.Commands;
 
-namespace Beepsky.Features.Commands.Text;
+namespace Beepsky.DiscordEventHandlers.Commands.Text;
 
 /// <inheritdoc />
 public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : CommandModule<CommandContext>
@@ -180,12 +180,6 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     [Command("top")]
     public async Task TopTracksAsync()
     {
-        // Not ready yet, need more data in the db since this count tracking was added recently
-        if (Context.User.Id != (ulong)WellKnownUsers.Monke)
-        {
-            return;
-        }
-
         List<AudioDownload>? topTracks = await sender.Send(new GetTopAudioTracks.Command());
         if (topTracks is null || topTracks.Count == 0)
         {
