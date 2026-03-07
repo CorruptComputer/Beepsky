@@ -1,4 +1,4 @@
-using Beepsky.Features.Audio;
+using Beepsky.Features.Audio.QuickQueue;
 using Beepsky.Services;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
@@ -58,7 +58,7 @@ public class VoiceStateUpdateHandler(GatewayClient gatewayClient, AudioQueueServ
             && changedChannelVoiceStates.Count == 0 // Count not updated in cache yet
             && DateTime.UtcNow.Month == 12)
         {
-            await sender.Send(new QueueRandomChristmasSongs.Command(arg.GuildId, arg.ChannelId.Value));
+            await sender.Send(new QueueRandomChristmasSongsInGuild.Command(arg.GuildId, arg.ChannelId.Value));
         }
     }
 }

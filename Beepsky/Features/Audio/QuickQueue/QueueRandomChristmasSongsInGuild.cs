@@ -1,10 +1,11 @@
 using Beepsky.Extensions;
 using Beepsky.Services;
 
-namespace Beepsky.Features.Audio;
+namespace Beepsky.Features.Audio.QuickQueue;
 
 /// <inheritdoc />
-public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueService) : IRequestHandler<QueueRandomChristmasSongs.Command, CommandResponse>
+public sealed class QueueRandomChristmasSongsInGuild(ISender sender)
+    : IRequestHandler<QueueRandomChristmasSongsInGuild.Command, CommandResponse>
 {
     private static readonly string[] christmasSongs =
     [
@@ -55,7 +56,7 @@ public sealed class QueueRandomChristmasSongs(AudioQueueService audioQueueServic
 
         foreach (string song in shuffledSongs)
         {
-            bool success = await audioQueueService.AddTrackToQueue(request.VoiceChannelId, request.GuildId, song);
+            bool success = await sender.Send(new QueueTrackInGuild.Command(request.GuildId, request.VoiceChannelId, song), cancellationToken);
             if (!success)
             {
                 return CommandResponse.Fail("Failed to add a track to the queue: " + song);

@@ -134,7 +134,7 @@ public sealed class GeneralCommandModule(ISender sender) : CommandModule<Command
 
         string fullHelpMessage = string.Empty;
 
-        if (Context.Guild != null)
+        if (Context.Guild is not null)
         {
             fullHelpMessage += audioCommands;
         }

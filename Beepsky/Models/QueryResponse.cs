@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace Beepsky.Models;
 
 /// <summary>
-///   Result from a DB query.
+///   Result from a CQRS query.
 /// </summary>
 /// <typeparam name="TResult"></typeparam>
 [Serializable]
@@ -37,7 +37,7 @@ public sealed record QueryResponse<TResult> : ResponseBase
     /// <returns>The newly translated TResult?</returns>
     public static implicit operator TResult?(QueryResponse<TResult> response)
     {
-        if (!response.Success || response.Result == null)
+        if (!response.Success || response.Result is null)
         {
             return default;
         }
@@ -52,7 +52,7 @@ public sealed record QueryResponse<TResult> : ResponseBase
     /// <returns>The newly translated QueryResponse&lt;TResult&gt;</returns>
     public static implicit operator QueryResponse<TResult>(TResult? result)
     {
-        if (result == null)
+        if (result is null)
         {
             return new()
             {

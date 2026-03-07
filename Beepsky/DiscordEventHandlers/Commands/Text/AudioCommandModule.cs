@@ -2,7 +2,7 @@ using System.Text;
 using Beepsky.Database.DbSets;
 using Beepsky.Database.Operations.AudioDownloads;
 using Beepsky.Features.Audio;
-using Beepsky.Services;
+using Beepsky.Features.Audio.QuickQueue;
 using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services.Commands;
@@ -10,7 +10,7 @@ using NetCord.Services.Commands;
 namespace Beepsky.DiscordEventHandlers.Commands.Text;
 
 /// <inheritdoc />
-public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : CommandModule<CommandContext>
+public class AudioCommandModule(ISender sender) : CommandModule<CommandContext>
 {
     /// <summary>
     ///   YouTube command
@@ -19,9 +19,8 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     [Command("q")]
-    public async Task<string> QueueTrackAsync(string track)
+    public async Task<string> QueueTrackAsync([CommandParameter(Remainder = true)] string track)
     {
-
         if (Context.Guild is null)
         {
             return "This command can only be used in a guild.";
@@ -39,7 +38,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
         bool added = await TryQuickQueueTracksAsync(track, Context.Guild.Id, voiceChannelId);
         if (!added)
         {
-            added = await audioQueue.AddTrackToQueue(voiceChannelId, Context.Guild.Id, track);
+            added = await sender.Send(new QueueTrackInGuild.Command(Context.Guild.Id, voiceChannelId, track));
         }
 
         return added
@@ -51,8 +50,8 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     {
         IRequest<CommandResponse>? quickSelect = track.ToLowerInvariant() switch
         {
-            "anuc" => new QueueRandomAnucSongs.Command(guildId, voiceChannelId),
-            "christmas" => new QueueRandomChristmasSongs.Command(guildId, voiceChannelId),
+            "anuc" => new QueueRandomAnucSongsInGuild.Command(guildId, voiceChannelId),
+            "christmas" => new QueueRandomChristmasSongsInGuild.Command(guildId, voiceChannelId),
             _ => null,
         };
 
@@ -71,7 +70,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     /// </summary>
     /// <returns></returns>
     [Command("skip")]
-    public string SkipTrack()
+    public async Task<string> SkipTrackAsync()
     {
         if (Context.Guild is null)
         {
@@ -84,7 +83,8 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             return "You must be in a voice channel to use this command.";
         }
 
-        audioQueue.AddSkipForGuild(Context.Guild.Id);
+        await sender.Send(new SkipCurrentlyPlayingTrackInGuild.Command(Context.Guild.Id));
+
         return "🫡";
     }
 
@@ -93,9 +93,8 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
     /// </summary>
     /// <returns></returns>
     [Command("stop")]
-    public string StopAllPlayback()
+    public async Task<string> StopAllPlaybackAsync()
     {
-
         if (Context.Guild is null)
         {
             return "This command can only be used in a guild.";
@@ -107,7 +106,7 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             return "You must be in a voice channel to use this command.";
         }
 
-        audioQueue.AddStopForGuild(Context.Guild.Id);
+        await sender.Send(new StopAllTracksForGuild.Command(Context.Guild.Id));
 
         return "🫡";
     }
@@ -125,50 +124,16 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             return;
         }
 
-        QueuedAudioTrack? currentlyPlaying = audioQueue.GetCurrentlyPlayingTrackForGuild(Context.Guild.Id);
-        IOrderedEnumerable<QueuedAudioTrack> queue = audioQueue.GetQueueForGuild(Context.Guild.Id).OrderBy(track => track.QueuedAt);
-
-        if (currentlyPlaying is null && !queue.Any())
+        string? response = await sender.Send(new GetTrackQueueForGuild.Query(Context.Guild.Id));
+        if (response is null)
         {
-            await Context.Message.ReplyAsync("The queue is currently empty.");
+            await Context.Message.ReplyAsync("Failed to retrieve queue information.");
             return;
-        }
-
-        StringBuilder response = new($"Currently Playing: ");
-        if (currentlyPlaying is not null)
-        {
-            response.Append(GetFormattedTrackTitleFromQueuedAudioTrack(currentlyPlaying));
-        }
-        else
-        {
-            response.Append("Nothing");
-        }
-
-        bool hasSkip = audioQueue.GetGuildsWithSkips().Contains(Context.Guild.Id);
-        if (hasSkip)
-        {
-            response.Append("\n*A skip has been requested for the currently playing track.*");
-        }
-
-        if (queue.Any())
-        {
-            response.Append("\n\nUp Next:\n");
-            int index = 1;
-            foreach (QueuedAudioTrack track in queue)
-            {
-                response.Append(index);
-                response.Append(". ");
-                response.Append(GetFormattedTrackTitleFromQueuedAudioTrack(track));
-                response.Append(" (");
-                response.Append(Enum.GetName(track.CurrentState));
-                response.Append(")\n");
-                index++;
-            }
         }
 
         await Context.Message.ReplyAsync(new ReplyMessageProperties()
         {
-            Content = response.ToString(),
+            Content = response,
             Flags = MessageFlags.SuppressEmbeds
         });
     }
@@ -205,22 +170,6 @@ public class AudioCommandModule(AudioQueueService audioQueue, ISender sender) : 
             Content = response.ToString(),
             Flags = MessageFlags.SuppressEmbeds
         });
-    }
-
-    private static string GetFormattedTrackTitleFromQueuedAudioTrack(QueuedAudioTrack track)
-    {
-        string title = string.Empty;
-
-        if (track.Title is not null)
-        {
-            title += $"[{track.Title}]({track.TrackUri})";
-        }
-        else
-        {
-            title += track.TrackUri.ToString();
-        }
-
-        return title;
     }
 
     private static string GetFormattedTrackTitleFromAudioDownload(AudioDownload track)

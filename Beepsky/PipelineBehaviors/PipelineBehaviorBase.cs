@@ -74,13 +74,13 @@ public abstract class PipelineBehaviorBase<TRequest, TResponse>
 
     private void StopDebugLog(TRequest request, bool success, Exception? exception)
     {
-        if (!_debugLog || _stopwatch == null)
+        if (!_debugLog || _stopwatch is null)
         {
             return;
         }
 
         _stopwatch.Stop();
-        if (exception != null)
+        if (exception is not null)
         {
             Log.Debug("Uncaught Exception [{TypeName}] | Exception = {ExceptionMesssage} | TRequest = {RequestBody}", typeof(TRequest).FullName, exception.Message, request.ToString());
             if (Debugger.IsAttached)
