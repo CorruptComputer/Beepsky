@@ -1,64 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <!-- Build info -->
-    <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <AnalysisMode>Recommended</AnalysisMode>
 
     <!-- Assembly info -->
-    <VersionPrefix>0.0.1</VersionPrefix>
-    <VersionSuffix>$(SourceRevisionId)</VersionSuffix>
-    <Authors>Nickolas Gupton</Authors>
-    <RepositoryUrl>https://github.com/CorruptComputer/Beepsky</RepositoryUrl>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
-    <SourceControlInformationFeatureSupported>true</SourceControlInformationFeatureSupported>
-    <SourceRevisionId>develop</SourceRevisionId>
     <NoDefaultLaunchSettingsFile>True</NoDefaultLaunchSettingsFile>
-    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <!-- If building in release mode, replace the SourceRevisionId with the 8 character git commit hash -->
-  <Target Condition="$(Configuration) == 'Release'" Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
-    <Exec Command="git describe --long --always --dirty --exclude=* --abbrev=8" ConsoleToMSBuild="True" IgnoreExitCode="False">
-      <Output PropertyName="SourceRevisionId" TaskParameter="ConsoleOutput" />
-    </Exec>
-  </Target>
-
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="9.0.0" />
-    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="libsodium" Version="1.0.21" />
-    <PackageReference Include="OllamaSharp" Version="5.4.23" />
-    <PackageReference Include="NetCord" Version="1.0.0-alpha.469" />
-    <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.469" />
-    <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.469" />
-    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.469" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.470" />
+    <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.470" />
+    <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.470" />
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.470" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
-    <PackageReference Include="Npgsql" Version="10.0.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="Questy" Version="0.0.7" />
-    <PackageReference Include="Questy.Autofac" Version="0.0.6" />
-    <PackageReference Include="Serilog" Version="4.3.1" />
-    <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
   </ItemGroup>
 
   <!-- Native binaries required by NetCord for Voice to work: https://github.com/NetCordDev/NetCord/blob/alpha/Documentation/guides/basic-concepts/installing-native-dependencies.md -->
@@ -71,5 +30,9 @@
 
     <!-- GitHub CI is on Ubuntu: https://packages.ubuntu.com/questing/amd64/libopus-dev/filelist -->
     <Content Include="/usr/lib/x86_64-linux-gnu/libopus.so" CopyToOutputDirectory="PreserveNewest" Condition="$(ContinuousIntegrationBuild) == true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Beepsky.Core/Beepsky.Core.csproj" />
   </ItemGroup>
 </Project>

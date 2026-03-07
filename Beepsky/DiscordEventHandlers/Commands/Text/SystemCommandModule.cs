@@ -1,3 +1,4 @@
+using Beepsky.Core;
 using Microsoft.Extensions.Hosting;
 using NetCord.Services.Commands;
 

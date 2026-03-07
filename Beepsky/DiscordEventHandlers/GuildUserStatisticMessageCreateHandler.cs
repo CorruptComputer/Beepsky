@@ -1,4 +1,4 @@
-using Beepsky.Features.Statistics;
+using Beepsky.Core.Features.Statistics;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 
@@ -30,7 +30,7 @@ public sealed class GuildUserStatisticMessageCreateHandler(ISender sender, Gatew
 
         if (arg.Guild is not null)
         {
-            await sender.Send(new UpdateUserMessageCount.Command(arg.Author, arg.Guild, isCommand, isBeepskyChat));
+            await sender.Send(new UpdateUserMessageCount.Command(arg.Author.Username, arg.Author.Id, arg.Guild.Name, arg.Guild.Id, isCommand, isBeepskyChat));
         }
 
         return;

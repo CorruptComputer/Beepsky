@@ -1,8 +1,8 @@
 using System.Text;
-using Beepsky.Database.DbSets;
-using Beepsky.Database.Operations.AudioDownloads;
-using Beepsky.Features.Audio;
-using Beepsky.Features.Audio.QuickQueue;
+using Beepsky.Core.Database.DbSets;
+using Beepsky.Core.Database.Operations.AudioDownloads;
+using Beepsky.Core.Features.Audio;
+using Beepsky.Core.Features.Audio.QuickQueue;
 using NetCord.Gateway;
 using NetCord.Rest;
 using NetCord.Services.Commands;

@@ -1,8 +1,9 @@
 using System.Globalization;
 using System.Reflection;
-using Beepsky.Exceptions;
-using Beepsky.Features.TerribleCounting;
-using Beepsky.Models.MathExpressions;
+using Beepsky.Core;
+using Beepsky.Core.Exceptions;
+using Beepsky.Core.Features.TerribleCounting;
+using Beepsky.Core.Models.MathExpressions;
 using NetCord.Rest;
 using NetCord.Services.Commands;
 

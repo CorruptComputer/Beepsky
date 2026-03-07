@@ -3,6 +3,12 @@
 Beepsky is a discord bot made primarily for personal use in a few servers of mine and close friends.
 This bot is primarily made for fun, and is not intended for wide distribution.
 
+Projects:
+- Beepsky
+  - Application startup and Netcord
+- Beepsky.Core
+  - Anything not specific to NetCord
+
 ## Database Access
 All database access must go through Questy (fork of MediatR) handlers in the Beepsky.Database.Operations namespace.
 Do not access the database context directly from any other code.

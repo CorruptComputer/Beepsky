@@ -1,5 +1,5 @@
-using Beepsky.Features.Audio.QuickQueue;
-using Beepsky.Services;
+using Beepsky.Core.Features.Audio.QuickQueue;
+using Beepsky.Core.Services;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 

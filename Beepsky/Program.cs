@@ -1,13 +1,15 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Beepsky.Extensions;
-using Beepsky.Database;
+using Beepsky.Core.Database;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using NetCord.Hosting.Services.Commands;
 using Beepsky.DiscordEventHandlers.Commands.Text;
-using Beepsky.Database.Operations;
+using Beepsky.Core.Database.Operations;
+using Beepsky.Core.Extensions;
+using Beepsky.Core;
 
 namespace Beepsky;
 
@@ -42,7 +44,8 @@ public static class Program
 
         builder.ConfigureContainer(new AutofacServiceProviderFactory(), containerBuilder =>
         {
-            containerBuilder.RegisterModule(new BeepskyModule(config));
+            containerBuilder.RegisterModule<BeepskyModule>();
+            containerBuilder.RegisterModule(new BeepskyCoreModule(config));
         });
 
         builder.Services.AddDbContext<BeepskyDbContext>();
