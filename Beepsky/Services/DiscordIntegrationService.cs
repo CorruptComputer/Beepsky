@@ -98,7 +98,7 @@ public class DiscordIntegrationService(GatewayClient gatewayClient, RestClient r
     /// <inheritdoc />
     public async Task TriggerTypingStateInChannelAsync(ulong channelId, CancellationToken cancellationToken = default)
     {
-        await restClient.TriggerTypingStateAsync(channelId, cancellationToken: cancellationToken);
+        await restClient.TriggerTypingAsync(channelId, cancellationToken: cancellationToken);
     }
 }
 
