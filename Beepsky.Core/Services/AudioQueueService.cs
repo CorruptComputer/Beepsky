@@ -1,7 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Specialized;
-using System.Text.RegularExpressions;
-using System.Web;
 using Beepsky.Core.Exceptions;
 using Serilog;
 
@@ -25,9 +22,10 @@ public class AudioQueueService : IDisposable
     public STC.ChannelReader<QueuedAudioTrack> DownloadChannelReader => _downloadChannel.Reader;
 
     /// <summary>
-    ///   Wake signal for the playback loop; await this instead of polling
+    ///   Waits for the playback wake signal; used by <see cref="AudioPlaybackService"/> to block until a state change occurs
     /// </summary>
-    public SemaphoreSlim PlaybackWakeSignal => _playbackWakeSignal;
+    /// <param name="cancellationToken"></param>
+    public Task WaitForPlaybackSignalAsync(CancellationToken cancellationToken) => _playbackWakeSignal.WaitAsync(cancellationToken);
 
     /// <summary>
     ///   Releases the playback wake signal so <see cref="AudioPlaybackService"/> processes the next state change

@@ -1,8 +1,4 @@
-using System.Diagnostics;
-using Beepsky.Core.Database.DbSets;
-using Beepsky.Core.Database.Operations.AudioDownloads;
-using Beepsky.Core.Exceptions;
-using Beepsky.Core.Extensions;
+using Beepsky.Core.Features.Audio;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -39,7 +35,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, IDiscordIntegrat
                     await ProcessQueueForGuildAsync(guildId, stoppingToken);
                 }
 
-                await audioQueue.PlaybackWakeSignal.WaitAsync(stoppingToken);
+                await audioQueue.WaitForPlaybackSignalAsync(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -130,7 +126,7 @@ public class AudioPlaybackService(AudioQueueService audioQueue, IDiscordIntegrat
                 ISender scopedSender = scope.ServiceProvider.GetRequiredService<ISender>();
 
                 nextTrack.CurrentState = QueuedAudioTrack.State.Playing;
-                await PlayAudioFile(nextTrack, scopedSender, cancellationToken);
+                await scopedSender.Send(new PlayAudioTrack.Command(nextTrack), nextTrack.CancellationTokenSource.Token);
             }, nextTrack.CancellationTokenSource.Token);
 
             // Wake the playback loop when this track finishes (for any reason) so the next track starts promptly
@@ -141,137 +137,4 @@ public class AudioPlaybackService(AudioQueueService audioQueue, IDiscordIntegrat
                 TaskScheduler.Default);
         }
     }
-
-    private async Task PlayAudioFile(QueuedAudioTrack track, ISender sender, CancellationToken botCancellationToken)
-    {
-        Log.Information("Playback task started for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-
-        if (track.DownloadedFilePath is null)
-        {
-            Log.Error("Attempted to play track with null file path");
-            return;
-        }
-
-        if (track.CancellationTokenSource.IsCancellationRequested)
-        {
-            Log.Information("Playback cancelled before starting for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-            return;
-        }
-
-        bool requeuedForDownload = false;
-
-        try
-        {
-            Stream? opusEncodeStream = await discordIntegrationService.GetOrCreateVoiceConnectionStreamAsync(track.GuildId, track.VoiceChannelId, botCancellationToken);
-            if (opusEncodeStream is null)
-            {
-                throw new BeepskyException("Invalid state, opusEncodeStream is null");
-            }
-
-            if (!File.Exists(track.DownloadedFilePath))
-            {
-                Log.Warning("Audio file missing at playback time, requeueing for re-download: {FilePath}", track.DownloadedFilePath);
-                try
-                {
-                    AudioDownload? dbEntry = await sender.Send(new GetAudioDownloadByUrl.Command(track.TrackUri.ToString()), track.CancellationTokenSource.Token);
-                    if (dbEntry is not null)
-                    {
-                        dbEntry.FileRemoved = true;
-                        await sender.Send(new UpdateAudioDownload.Command(dbEntry), track.CancellationTokenSource.Token);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Error setting FileRemoved flag for track {TrackUri}", track.TrackUri);
-                }
-
-                audioQueue.RequeueTrackForDownload(track);
-                requeuedForDownload = true;
-                return;
-            }
-
-            try
-            {
-                AudioDownload? dbEntry = await sender.Send(new GetAudioDownloadByUrl.Command(track.TrackUri.ToString()), CancellationToken.None);
-                if (dbEntry is not null)
-                {
-                    dbEntry.PlayCount++;
-                    dbEntry.LastAccessedAt = DateTimeOffset.UtcNow;
-                    await sender.Send(new UpdateAudioDownload.Command(dbEntry), CancellationToken.None);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error updating play count for track {Track}", track.DownloadedFilePath);
-            }
-
-            List<string> arguments = [
-                "-i", track.DownloadedFilePath,
-                "-loglevel", "-8",
-                "-ac", "2",
-                "-f", "s16le",
-                "-ar", "48000",
-                "pipe:1"
-            ];
-
-            ProcessStartInfo startInfo = new("ffmpeg")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            foreach (string arg in arguments)
-            {
-                startInfo.ArgumentList.Add(arg);
-            }
-
-            using Process ffmpeg = Process.Start(startInfo)
-                ?? throw new BeepskyException("Could not start FFmpeg process");
-
-            try
-            {
-                await ffmpeg.StandardOutput.BaseStream.CopyToAsync(opusEncodeStream, track.CancellationTokenSource.Token).AwaitWithTimeout(
-                track.Duration ?? TimeSpan.FromMinutes(10),
-                onSuccess: async () =>
-                {
-                    Log.Information("Finished playing track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-                    string ffmpegErrors = await ffmpeg.StandardError.ReadToEndAsync();
-                    await opusEncodeStream.FlushAsync();
-                },
-                onTimeout: () =>
-                {
-                    Log.Warning("FFmpeg process timed out for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-                    ffmpeg.Kill(entireProcessTree: true);
-                    return Task.CompletedTask;
-                },
-                onComplete: () =>
-                {
-                    ffmpeg.Dispose();
-                    return Task.CompletedTask;
-                },
-                tasksLinkedCts: track.CancellationTokenSource);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error during playback of track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-                ffmpeg.Kill();
-                ffmpeg.Dispose();
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error playing track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-        }
-        finally
-        {
-            // If it was requeued, we'll still need it.
-            if (!requeuedForDownload)
-            {
-                track.CancellationTokenSource.Dispose();
-            }
-        }
-
-        Log.Information("Playback task completed for track {Track} in guild {GuildId}", track.DownloadedFilePath, track.GuildId);
-    }
 }
-

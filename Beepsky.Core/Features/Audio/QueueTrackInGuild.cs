@@ -1,17 +1,15 @@
-using System;
 using System.Collections.Specialized;
 using System.Web;
+using Beepsky.Core.Consts;
 using Beepsky.Core.Services;
 using Serilog;
 
 namespace Beepsky.Core.Features.Audio;
 
 /// <inheritdoc />
-public class QueueTrackInGuild(ISender sender, AudioQueueService audioQueueService)
-    : IRequestHandler<QueueTrackInGuild.Command, CommandResponse>, IDisposable
+public class QueueTrackInGuild(ISender sender, AudioQueueService audioQueueService, IHttpClientFactory httpClientFactory)
+    : IRequestHandler<QueueTrackInGuild.Command, CommandResponse>
 {
-    private readonly HttpClient _httpClient = new(new HttpClientHandler { AllowAutoRedirect = false });
-
     /// <summary>
     ///   Command to queue a track for playback in a guild
     /// </summary>
@@ -89,7 +87,8 @@ public class QueueTrackInGuild(ISender sender, AudioQueueService audioQueueServi
         {
             try
             {
-                HttpResponseMessage response = await _httpClient.SendAsync(
+                HttpClient httpClient = httpClientFactory.CreateClient(HttpClientNames.AudioSourceLookup);
+                HttpResponseMessage response = await httpClient.SendAsync(
                     new HttpRequestMessage(HttpMethod.Head, uri)
                 );
 
@@ -117,12 +116,5 @@ public class QueueTrackInGuild(ISender sender, AudioQueueService audioQueueServi
         }.Uri;
 
         return uri;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _httpClient.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

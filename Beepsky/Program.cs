@@ -51,6 +51,7 @@ public static class Program
         builder.Services.AddDbContext<BeepskyDbContext>();
         builder.Services.AddBeepskyDiscordBot(config);
         builder.Services.AddBeepskyBackgroundServices();
+        builder.Services.AddBeepskyHttpClients();
 
         Console.WriteLine("Host built successfully...");
         return builder.Build();

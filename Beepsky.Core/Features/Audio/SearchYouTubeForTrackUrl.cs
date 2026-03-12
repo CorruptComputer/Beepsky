@@ -1,15 +1,15 @@
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Web;
+using Beepsky.Core.Consts;
 using Serilog;
 
 namespace Beepsky.Core.Features.Audio;
 
 /// <inheritdoc />
-public partial class SearchYouTubeForTrackUrl
-    : IRequestHandler<SearchYouTubeForTrackUrl.Query, QueryResponse<Uri>>, IDisposable
+public partial class SearchYouTubeForTrackUrl(IHttpClientFactory httpClientFactory)
+    : IRequestHandler<SearchYouTubeForTrackUrl.Query, QueryResponse<Uri>>
 {
-    private readonly HttpClient _httpClient = new(new HttpClientHandler { AllowAutoRedirect = false });
-
     /// <summary>
     ///   Command to queue a track for playback in a guild
     /// </summary>
@@ -23,7 +23,8 @@ public partial class SearchYouTubeForTrackUrl
         Uri searchUrl = new($"https://www.youtube.com/results?search_query={HttpUtility.UrlEncode(request.SearchQuery)}");
         try
         {
-            HttpResponseMessage response = await _httpClient.GetAsync(searchUrl, cancellationToken);
+            HttpClient httpClient = httpClientFactory.CreateClient(HttpClientNames.AudioSourceLookup);
+            HttpResponseMessage response = await httpClient.GetAsync(searchUrl, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 Log.Warning("YouTube search returned {StatusCode} for query: {Query}", response.StatusCode, request.SearchQuery);
@@ -50,11 +51,4 @@ public partial class SearchYouTubeForTrackUrl
 
     [GeneratedRegex("\"videoId\":\"([a-zA-Z0-9_-]+)\"")]
     private static partial Regex YouTubeVideoIdRegex();
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _httpClient.Dispose();
-        GC.SuppressFinalize(this);
-    }
 }

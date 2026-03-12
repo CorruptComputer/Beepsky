@@ -1,4 +1,5 @@
 using System.Globalization;
+using Beepsky.Core.Consts;
 using Beepsky.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -37,5 +38,15 @@ public static class IServiceCollectionExtensions
     {
         services.AddHostedService<AudioPlaybackService>();
         services.AddHostedService<AudioDownloadService>();
+    }
+
+    /// <summary>
+    ///   Adds named HTTP clients used across Beepsky.Core
+    /// </summary>
+    /// <param name="services">The service collection to register HTTP clients into</param>
+    public static void AddBeepskyHttpClients(this IServiceCollection services)
+    {
+        services.AddHttpClient(HttpClientNames.AudioSourceLookup)
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
     }
 }
