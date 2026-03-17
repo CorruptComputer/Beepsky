@@ -19,7 +19,7 @@
     <PackageReference Include="Npgsql" Version="10.0.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Questy" Version="0.0.8" />
-    <PackageReference Include="Questy.Autofac" Version="0.0.6" />
+    <PackageReference Include="Questy.Autofac" Version="0.0.7" />
     <PackageReference Include="Serilog" Version="4.3.1" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
