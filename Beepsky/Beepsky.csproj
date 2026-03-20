@@ -10,10 +10,10 @@
 
   <ItemGroup>
     <PackageReference Include="libsodium" Version="1.0.21" />
-    <PackageReference Include="NetCord" Version="1.0.0-alpha.476" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.477" />
     <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.476" />
     <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.476" />
-    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.476" />
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.477" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
