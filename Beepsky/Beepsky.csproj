@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="libsodium" Version="1.0.21" />
-    <PackageReference Include="NetCord" Version="1.0.0-alpha.479" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.480" />
     <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.479" />
     <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.479" />
     <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.479" />
